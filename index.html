@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>wii menu</title>
+
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="wiiGrid">
+        <div class="gameGridWrapper">
+
+            <div class="gameGrid">
+                <div class="game">
+                    <svg viewBox="0 0 200 113" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feDropShadow dx="0" dy="0" stdDeviation="2.5" flood-color="#bdbdbd" flood-opacity="1" />
+                            </filter>
+
+                            <clipPath id="gameClip">
+                                <path transform="translate(5 6)" d="M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z" />
+                            </clipPath>
+                        </defs>
+                    
+                        <path transform="translate(5 6)" d="M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z" 
+                            fill="none"
+                            stroke="#bdbdbd"
+                            stroke-width="5"
+                            filter="url(#shadow)"
+                        />
+
+                        <image 
+                            href="assets/imgs/Untitled.jpg" 
+                            x="0" 
+                            y="0" 
+                            width="200" 
+                            height="111" 
+                            preserveAspectRatio="xMidYMid slice"
+                            clip-path="url(#gameClip)" 
+                        />
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="bottomBar">
+
+            <div class="clock">12:00</div>
+            <div class="dayNight">AM</div>
+            <div class="date">Fri 1/1</div>
+
+            <div class="menu">
+                <svg class="menuBG" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                    viewBox="0 0 102.97 16.27">
+                    <defs>
+                        <style>
+                            .cls-1 {
+                                stroke: #b8babc;
+                            }
+                            .cls-1,
+                            .cls-2 {
+                                fill: none;
+                                opacity: .35;
+                                stroke-miterlimit: 10;
+                                stroke-width: .5px;
+                            }
+                            .cls-3 {
+                                fill: url(#radial-gradientBG);
+                            }
+                            .cls-4 {
+                                fill: #4abde5;
+                            }
+                            .cls-2 {
+                                stroke: #dcddde;
+                            }
+                            .all{
+                                transform: scale(1.05) translateX(-2.5px) translateY(0.1px);
+                            }
+                        </style>
+
+                        <radialGradient id="radial-gradientBG" cx="49.61" cy="5268.46" fx="49.61" fy="5268.46" r="66.35"
+                            gradientTransform="translate(3.62 -1127.11) scale(1.02 .21)" gradientUnits="userSpaceOnUse">
+                            <stop offset=".61" stop-color="#a4a6aa" />
+                            <stop offset="1" stop-color="#cdcfd7" />
+                        </radialGradient>
+                    </defs>
+                    <g id="BG">
+                        <path class="cls-3 all"                                  d="M.51,16.03V.26h16.41c2.45,0,5.16,1.23,8.03,2.53,3.37,1.53,7.2,3.27,11.3,3.29h4.12l22.4-.02h4.01c4.53,0,8.33-1.79,11.69-3.36,2.7-1.27,5.25-2.46,7.65-2.46h16.41v15.76H.51s0,.03,0,.03Z" />
+                    </g>
+                    <path id="strokeBG" class="cls-4 all"                        d="M102.53.25v15.78H.5V.25h16.32c5.33,0,11.76,5.88,19.38,5.92h30.68c8.12,0,13.99-5.92,19.31-5.92h16.32M102.78,0h-16.58C83.78,0,81.2,1.22,78.48,2.51c-3.35,1.6-7.15,3.4-11.59,3.4h-30.68c-4.09-.02-7.92-1.77-11.28-3.33-2.89-1.33-5.61-2.58-8.1-2.58H.25v16.27h102.53V0h0Z" />
+                    <path id="leftLight" class="cls-2 all"                       d="M.25,1.51h10.3c2.98,0,5.41,2.42,5.41,5.41h0c0,2.98-2.42,5.41-5.41,5.41H.25V1.51H.25Z" />
+                    <path id="leftDark" class="cls-1 all"                        d="M.25,2.01h10.3c2.98,0,5.41,2.42,5.41,5.41h0c0,2.98-2.42,5.41-5.41,5.41H.25V2.01H.25Z" />
+                    <path id="rightLight" class="cls-2 all"                      d="M92.42,1.76h10.3v10.81h-10.3c-2.98,0-5.41-2.42-5.41-5.41h0c0-2.98,2.42-5.41,5.41-5.41Z" />
+                    <path id="leftDark-2" data-name="leftDark" class="cls-1 all" d="M92.42,2.27h10.3v10.81h-10.3c-2.98,0-5.41-2.42-5.41-5.41h0c0-2.98,2.42-5.41,5.41-5.41Z" />
+                </svg>
+
+                <svg class="settingsBtnSVGLeft" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 6.75 6.75">
+                    <defs>
+                        <style>
+                            .btn-cls-1 {
+                                fill: #fff;
+                            }
+
+                            .btn-cls-2 {
+                                opacity: .25;
+                            }
+
+                            .btn-cls-3 {
+                                fill: url(#btn-radial-gradient);
+                            }
+
+                            .btn-cls-4 {
+                                fill: #56bfde;
+                            }
+
+                            .btn-cls-5 {
+                                fill: #a4a4a4;
+                                font-family: ContinuumMedium, 'Continuum Medium';
+                                font-size: 2px;
+                            }
+                        </style>
+                        <radialGradient id="btn-radial-gradient" cx="3.35" cy="3.35" fx="3.35" fy="3.35" r="3.25"
+                            gradientUnits="userSpaceOnUse">
+                            <stop offset="0" stop-color="#d5d5d5" />
+                            <stop offset="1" stop-color="#babebf" />
+                        </radialGradient>
+                    </defs>
+                    <g>
+                        <path class="btn-cls-3" d="M3.35,6.6C1.56,6.6.1,5.14.1,3.35S1.56.1,3.35.1s3.25,1.46,3.25,3.25-1.46,3.25-3.25,3.25Z" />
+                        <path class="btn-cls-4"
+                            d="M3.35.2c1.74,0,3.15,1.41,3.15,3.15s-1.41,3.15-3.15,3.15S.2,5.09.2,3.35,1.61.2,3.35.2M3.35,0C1.5,0,0,1.5,0,3.35s1.5,3.35,3.35,3.35,3.35-1.5,3.35-3.35S5.2,0,3.35,0h0Z" />
+                    </g>
+                    <text class="btn-cls-5" transform="translate(2.12 3.91)">
+                        <tspan x="0" y="0">Wii</tspan>
+                    </text>
+                    <g class="btn-cls-2">
+                        <path class="btn-cls-1"
+                            d="M4.33,1.28s0,0,0,0c-.44-.58-1.18-.9-1.95-.77-1.09.2-1.81,1.23-1.62,2.32.09.49.35.9.71,1.19.3.06.61.07.93.02,1.3-.23,2.16-1.47,1.93-2.76Z" />
+                    </g>
+                </svg>
+
+                <svg class="settingsBtnSVGRight" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 6.75 6.75">
+                    <defs>
+                        <style>
+                            .btn2-cls-1 {
+                                fill: #a4a4a4;
+                            }
+
+                            .btn2-cls-2 {
+                                fill: #fff;
+                            }
+
+                            .btn2-cls-3 {
+                                opacity: .25;
+                            }
+
+                            .btn2-cls-4 {
+                                fill: url(#btn2-radial-gradient);
+                            }
+
+                            .btn2-cls-5 {
+                                fill: #56bfde;
+                            }
+                        </style>
+                        <radialGradient id="btn2-radial-gradient" cx="3.35" cy="3.35" fx="3.35" fy="3.35" r="3.25"
+                            gradientUnits="userSpaceOnUse">
+                            <stop offset="0" stop-color="#d5d5d5" />
+                            <stop offset="1" stop-color="#babebf" />
+                        </radialGradient>
+                    </defs>
+                    <g>
+                        <path class="btn2-cls-4" d="M3.35,6.6C1.56,6.6.1,5.14.1,3.35S1.56.1,3.35.1s3.25,1.46,3.25,3.25-1.46,3.25-3.25,3.25Z" />
+                        <path class="btn2-cls-5"
+                            d="M3.35.2c1.74,0,3.15,1.41,3.15,3.15s-1.41,3.15-3.15,3.15S.2,5.09.2,3.35,1.61.2,3.35.2M3.35,0C1.5,0,0,1.5,0,3.35s1.5,3.35,3.35,3.35,3.35-1.5,3.35-3.35S5.2,0,3.35,0h0Z" />
+                    </g>
+                    <g>
+                        <path class="btn2-cls-1" d="M5.4,2.64l-2.05.62-2.05-.62v-.2c0-.06.05-.11.11-.11h3.89c.06,0,.11.05.11.11v.2Z" />
+                        <path class="btn2-cls-1" d="M5.25,4.36H1.45c-.08,0-.15-.07-.15-.15v-1.41l2.05.63,2.05-.63v1.41c0,.08-.07.15-.15.15Z" />
+                    </g>
+                    <g class="btn2-cls-3">
+                        <path class="btn2-cls-2"
+                            d="M4.33,1.28s0,0,0,0c-.44-.58-1.18-.9-1.95-.77-1.09.2-1.81,1.23-1.62,2.32.09.49.35.9.71,1.19.3.06.61.07.93.02,1.3-.23,2.16-1.47,1.93-2.76Z" />
+                    </g>
+                </svg>
+
+
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+
+
