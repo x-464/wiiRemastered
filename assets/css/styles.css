@@ -10,36 +10,79 @@
 body{
     margin: 0;
     background-color: black;
-    /* background-image: url("/assets/imgs/WiiMenu.png"); */
-    /* background-image: url("/assets//imgs//wii.jpg"); */
+    min-height: 100dvh;
+    overflow: hidden;
+    container-type: size;
+}
+
+.screen{
+    position: relative;
+    min-height: 100dvh;
+    display: grid;
+    grid-template: 1fr / 1fr;
+    place-items: center;
+    container-type: size;
+}
+
+.reference{
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 4;
+    background-image: url("/assets/imgs/WiiMenu.png");
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
-    aspect-ratio: 16 / 9;    
-    overflow: hidden;
 }
 
 .wiiGrid{
+    
+    background: repeating-linear-gradient(
+        to bottom,
+        rgb(248, 248, 248) 0px 2.5px,
+        rgb(234, 234, 234) 2.5px 5px
+    );
+    
+    position: relative;
+    aspect-ratio: 16 / 9;
+    width: min(100dvw, calc(100dvh * 16 / 9));
     display: grid;
-    grid-template: .725fr .275fr / 1fr;
+    grid-template: 1fr .385fr / 1fr;
+    container-type: size;
+}
+.wiiGrid::before{
+    content: "";
+    position: absolute;
     height: 100%;
-    overflow: visible;
+    width: 100%;
+    backdrop-filter: blur(0.5px);
 }
 
+
 .gameGridWrapper {
-    position: relative;
-    margin-top: 4.15%;
-    margin-left: 7.85%;
-    width: fit-content;
-    height: 100%;
+    margin-top: 4cqh;
+    min-width: 100cqw;
+    container-type: size;
+    display: flex;
+    overflow: scroll;
+    /* z-index: 5; */
+    /* background-color: green; */
+    /* opacity: 0.5; */
 }
 
 .gameGrid{
-    position: absolute;
     display: grid;
-    grid-template: repeat(3, 21.3vh) / repeat(4, 21.05vw);
-    width: fit-content;
+    grid-template: repeat(3, 32.5cqh) / repeat(4, 21.07cqw);
     place-items: center;
+    /* background-color: yellow; */
+}
+
+.P1{
+    padding-left: 7.85cqw;
+}
+
+.P3{
+    padding-right: 7.85cqw;
 }
 
 .game{
@@ -53,7 +96,30 @@ body{
 
 .game svg{
     display: block;
+    transition: transform 0.1s ease-in-out;
+    z-index: 2;
 }
+
+.game svg:hover {
+    transform: scale(1.1);
+    z-index: 3;
+}
+
+.arrow{
+    position: absolute;
+    top: 50cqh;
+    width: 10cqmin;
+    height: 10cqmin;
+    background-color: black;
+    z-index: 4;
+}
+.arrowLeft{
+    left: 3.5cqw;
+}
+.arrowRight{
+    left: 92.5cqw;
+}
+
 
 .bottomBar{
     position: relative;
@@ -66,32 +132,34 @@ body{
 .clock{
     height: fit-content;
     font-family: "sevenSegment";
-    font-size: 7.25rem;
-    line-height: 0.8;
-    letter-spacing: -0.2rem;
+    font-size: 11cqmin;
+    line-height: 0.99;
+    letter-spacing: -0.2cqmin;
     color: #9d9d9d;
-    margin-left: 95px;
+    margin-left: 9cqmin;
+    z-index: 2;
 }
 
 .dayNight{
     height: fit-content;
     font-family: "Roboto";
-    font-size: 2.75rem;
+    font-size: 4cqmin;
     font-weight: 700;
     color: #9d9d9d;
-    margin-top: 42.5px;
-    margin-left: 30px;
+    margin-top: 4.5cqmin;
+    margin-left: 2.5cqmin;
+    z-index: 2;
 }
 
 .date{
     font-family: "Roboto";
-    font-size: 4.75rem;
+    font-size: 7.5cqmin;
     font-weight: 700;
-    letter-spacing: 0.1rem;
     flex-basis: 100%;
     color: #79797a;
     text-align: center;
-    margin-top: 25px;
+    margin-top: 1cqmin;
+    z-index: 2;
 }
 
 .menu{
@@ -104,34 +172,40 @@ body{
 
 .menuBG{
     position: absolute;
-    z-index: -1;
 }
 
-.settingsBtnSVGLeft{
+.directoryWrapper{
     grid-area: 1 / 1;
     align-self: center;
     justify-self: end;
-    margin-bottom: 15px;
+    margin-bottom: 1cqh;
+    width: 100%;
+    height: 100%;
+}
+
+.settingsInput{
+    position: absolute;
+    width: fit-content;
+    height: fit-content;
+    /* margin: -1px; */
+    padding: 0;
+    overflow: hidden;
+    /* clip: rect(0, 0, 0, 0); */
+    /* white-space: nowrap; */
+    border: 0;
+}
+
+.settingsBtnSVG{
     scale: 0.6;
-    filter: drop-shadow(20px 20px 5px rgba(0, 0, 0, 0.25));
+    filter: drop-shadow(2cqw 2cqh 5px rgba(0, 0, 0, 0.25));
     transition: transform 0.1s ease-in-out;
     cursor: pointer;
 }
-.settingsBtnSVGLeft:hover {
+.settingsBtnSVG:hover {
     transform: scale(1.1);
 }
 
 .settingsBtnSVGRight {
     grid-area: 1 / 3;
-    align-self: center;
-    justify-self: end;
-    margin-bottom: 15px;
-    scale: 0.6;
-    filter: drop-shadow(20px 20px 5px rgba(0, 0, 0, 0.25));
-    transition: transform 0.1s ease-in-out;
-    cursor: pointer;
-}
-
-.settingsBtnSVGRight:hover {
-    transform: scale(1.1);
+    justify-self: start;
 }
