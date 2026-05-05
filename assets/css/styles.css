@@ -65,16 +65,16 @@ body{
     container-type: size;
     display: flex;
     overflow: scroll;
-    /* z-index: 5; */
-    /* background-color: green; */
-    /* opacity: 0.5; */
+    scrollbar-width: none;
+}
+.gameGridWrapper::-webkit-scrollbar {
+    display: none;
 }
 
 .gameGrid{
     display: grid;
     grid-template: repeat(3, 32.5cqh) / repeat(4, 21.07cqw);
     place-items: center;
-    /* background-color: yellow; */
 }
 
 .P1{
@@ -96,13 +96,7 @@ body{
 
 .game svg{
     display: block;
-    transition: transform 0.1s ease-in-out;
     z-index: 2;
-}
-
-.game svg:hover {
-    transform: scale(1.1);
-    z-index: 3;
 }
 
 .arrow{
@@ -174,35 +168,16 @@ body{
     position: absolute;
 }
 
-.directoryWrapper{
-    grid-area: 1 / 1;
-    align-self: center;
-    justify-self: end;
-    margin-bottom: 1cqh;
-    width: 100%;
-    height: 100%;
-}
-
-.settingsInput{
-    position: absolute;
-    width: fit-content;
-    height: fit-content;
-    /* margin: -1px; */
-    padding: 0;
-    overflow: hidden;
-    /* clip: rect(0, 0, 0, 0); */
-    /* white-space: nowrap; */
-    border: 0;
-}
-
 .settingsBtnSVG{
     scale: 0.6;
-    filter: drop-shadow(2cqw 2cqh 5px rgba(0, 0, 0, 0.25));
+    transform: translateY(-1.5cqw);
+    filter: drop-shadow(2cqw 2cqh 5px rgba(0, 0, 0, 0.1));
     transition: transform 0.1s ease-in-out;
     cursor: pointer;
+    z-index: 4;
 }
 .settingsBtnSVG:hover {
-    transform: scale(1.1);
+    transform: scale(1.1) translateY(-1.5cqw);
 }
 
 .settingsBtnSVGRight {

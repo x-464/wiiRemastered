@@ -1,13 +1,32 @@
-const fileDir = document.querySelector(".settingsInput");
+import { open } from "@tauri-apps/plugin-dialog";
+import { readDir } from "@tauri-apps/plugin-fs";
+import { readFile } from "@tauri-apps/plugin-fs";
+import { join } from "@tauri-apps/api/path";
+import { invoke } from "@tauri-apps/api/core";
 
-fileDir.addEventListener(("click"), () => {
-    const files = Array.from(fileDir.files);
-    console.log(files.length);
+const fileDir = document.querySelector(".settingsBtnSVGLeft");
 
-    for (const file of files){
-        console.log(file.webkitRelativePath);
-    }
-})
+fileDir.addEventListener("click", async () => {
+    const selected = await open({
+        directory: true,
+        multiple: false
+    });
+
+    const files = await readDir(selected);
+    // console.log(files);
+
+    const firstIso = files.find(file => file.name?.toLowerCase().endsWith(".iso"));
+
+    const fullPath = await join(selected, firstIso.name);
+
+    console.log(fullPath);
+
+    const result = await invoke("get_iso_metadata", {
+        path: fullPath
+    });
+
+    console.log(result);
+});
 
 
 const gameGridP1 = document.querySelector(".gameGrid.P1");
@@ -19,10 +38,6 @@ function sendGame(){
         <div class="game">
             <svg viewBox="0 0 200 113" xmlns="http://www.w3.org/2000/svg">
                 <defs>
-                    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="0" stdDeviation="2.5" flood-color="#bdbdbd" flood-opacity="1" />
-                    </filter>
-
                     <clipPath id="gameClip">
                         <path transform="translate(5 6)" d="M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z" />
                     </clipPath>
@@ -30,9 +45,8 @@ function sendGame(){
             
                 <path transform="translate(5 6)" d="M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z" 
                     fill="none"
-                    stroke="#bdbdbd"
-                    stroke-width="5"
-                    filter="url(#shadow)"
+                    stroke="#bbbbbb"
+                    stroke-width="4"
                 />
 
                 <image 
@@ -59,6 +73,10 @@ const games = document.querySelector(".gameGridWrapper");
 const game = document.querySelector(".game");
 const arrowLeft = document.querySelector(".arrowLeft");
 const arrowRight = document.querySelector(".arrowRight");
+
+games.addEventListener("wheel", (e) => {
+    e.preventDefault();
+}, { passive: false });
 
 let curPage = 1;
 
