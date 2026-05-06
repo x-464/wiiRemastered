@@ -94,7 +94,7 @@ body{
     align-items: center;
 }
 
-.game svg{
+.gamePath{
     display: block;
     z-index: 2;
 }
@@ -170,6 +170,8 @@ body{
 
 .settingsBtnSVG{
     scale: 0.6;
+    width: 30cqmin;
+    aspect-ratio: 1 / 1;
     transform: translateY(-1.5cqw);
     filter: drop-shadow(2cqw 2cqh 5px rgba(0, 0, 0, 0.1));
     transition: transform 0.1s ease-in-out;

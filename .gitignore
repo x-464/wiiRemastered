@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.vite/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# macOS
+.DS_Store
+
+# editors
+.vscode/
+.idea/
+
+# Rust / Tauri
+target/
+src-tauri/target/
+
+# env files
+.env
+.env.*
+!.env.example
