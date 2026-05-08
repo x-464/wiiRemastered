@@ -7,25 +7,48 @@ import { invoke } from "@tauri-apps/api/core";
 const fileDir = document.querySelector(".settingsBtnSVGLeft");
 
 fileDir.addEventListener("click", async () => {
+    // const selected = await open({
+    //     directory: true,
+    //     multiple: false
+    // });
+
+    // const files = await readDir(selected);
+    // // console.log(files);
+
+    // const firstIso = files.find(file => file.name?.toLowerCase().endsWith(".iso"));
+
+    // const fullPath = await join(selected, firstIso.name);
+
+    // console.log(fullPath);
+
+    // const result = await invoke("get_iso_metadata", {
+    //     path: fullPath
+    // });
+
+    // const debug = await invoke("get_bnr_from_iso", {
+    //     path: fullPath
+    // });
+    
+    // console.log(result);
+    // console.log(debug);
+
+    
     const selected = await open({
         directory: true,
         multiple: false
     });
 
-    const files = await readDir(selected);
-    // console.log(files);
+    if (!selected || typeof selected !== "string") {
+        console.log("Folder selection cancelled");
+        return;
+    }
 
-    const firstIso = files.find(file => file.name?.toLowerCase().endsWith(".iso"));
-
-    const fullPath = await join(selected, firstIso.name);
-
-    console.log(fullPath);
-
-    const result = await invoke("get_iso_metadata", {
-        path: fullPath
+    const extractResult = await invoke("extract_first_iso_banner", {
+        folderPath: selected
     });
 
-    console.log(result);
+    console.log(extractResult);
+
 });
 
 
@@ -34,86 +57,91 @@ const gameGridP2 = document.querySelector(".gameGrid.P2");
 const gameGridP3 = document.querySelector(".gameGrid.P3");
 
 function sendGame(){
-    // return `
-    //     <div class="game">
-    //         <svg viewBox="0 0 200 113" xmlns="http://www.w3.org/2000/svg">
-    //             <defs>
-    //                 <clipPath id="gameClip">
-    //                     <path transform="translate(5 6)" d="M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z" />
-    //                 </clipPath>
-    //             </defs>
-            
-    //             <path transform="translate(5 6)" d="M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z" 
-    //                 fill="none"
-    //                 stroke="#bbbbbb"
-    //                 stroke-width="4"
-    //             />
-
-    //             <image 
-    //                 href="assets/imgs/Untitled.jpg" 
-    //                 x="0" 
-    //                 y="0" 
-    //                 width="200" 
-    //                 height="111" 
-    //                 preserveAspectRatio="xMidYMid slice"
-    //                 clip-path="url(#gameClip)" 
-    //             />
-    //         </svg>
-    //     </div>
-    // `;
-
     return `
     <div class="game">
         <svg class="gamePath" viewBox="0 0 200 113" xmlns="http://www.w3.org/2000/svg">
+        
+        <style>
+            .channelWii{
+                fill: #4a4a4a;
+                font-family: "Roboto";
+                font-weight: 650;
+                font-size: 4cqmin;
+                opacity: 5%;
+                transform: translate(5cqw, 5cwh);
+            }
+        </style>
+        
         <defs>
-            <pattern id="lineFill" width="4" height="3" patternUnits="userSpaceOnUse">
-                <rect width="4" height="1" fill="rgb(233, 233, 233)" />
-                <rect y="1" width="4" height="2" fill="rgb(213, 213, 213)" />
+            <filter id="patternBlur" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="0.5" />
+            </filter>
+
+            <pattern id="lineFill" width="4" height="5" patternUnits="userSpaceOnUse" patternTransform="translate(0,0)">
+                <g filter="url(#patternBlur)">
+                    <rect width="4" height="1" fill="rgb(200, 200, 200)" />
+                    <rect y="1" width="4" height="4" fill="rgb(181, 181, 181)" />
+                </g>
+
+                <animateTransform
+                    attributeName="patternTransform"
+                    type="translate"
+                    values="0,0; 0,-5;"
+                    dur="1.5s"
+                    repeatCount="indefinite" />
             </pattern>
 
-            <filter id="noiseFilter">
+            <filter id="tvStatic">
                 <feTurbulence
                     type="fractalNoise"
-                    baseFrequency="0.9"
-                    numOctaves="2"
+                    baseFrequency="1.2"
+                    numOctaves="1"
                     seed="2"
-                    result="noise"
-                >
+                    stitchTiles="stitch"
+                    result="noise">
                     <animate
                     attributeName="seed"
-                    from="1"
-                    to="80"
-                    dur="2s"
+                    values="1;12;24;36;48;60;72;84"
+                    dur="0.18s"
                     repeatCount="indefinite" />
                 </feTurbulence>
 
+                <!-- make it grayscale -->
                 <feColorMatrix in="noise" type="saturate" values="0" result="monoNoise" />
 
-                <!-- keep noise only where the shape exists -->
-                <feComposite
-                    in="monoNoise"
-                    in2="SourceGraphic"
-                    operator="in"
-                    result="clippedNoise"
-                />
+                <!-- crank contrast -->
+                <feComponentTransfer in="monoNoise" result="staticNoise">
+                    <feFuncR type="linear" slope="4" intercept="-1.5" />
+                    <feFuncG type="linear" slope="4" intercept="-1.5" />
+                    <feFuncB type="linear" slope="4" intercept="-1.5" />
+                </feComponentTransfer>
 
-                <feBlend
-                    in="SourceGraphic"
-                    in2="clippedNoise"
-                    mode="soft-light"
-                />
-                </filter>
+                <!-- keep it only inside the fill shape -->
+                <feComposite in="staticNoise" in2="SourceGraphic" operator="in" result="clippedNoise" />
+
+                <!-- blend into your pattern -->
+                <feBlend in="SourceGraphic" in2="clippedNoise" mode="screen" />
+            </filter>
         </defs>
 
             <path transform="translate(5 6)" d="M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z" 
-                fill="url(#lineFill)"
-                stroke="#bbbbbb"
-                stroke-width="4"
-                filter="url(#noiseFilter)"
+                
             />
+            <path transform="translate(5 6)" d="M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z"
+                fill="none"
+                stroke="#bbbbbb"
+                stroke-width="2"
+            />
+
+            <text class="channelWii">
+                <tspan x="0" y="0">Wii</tspan>
+            </text>
+
         </svg>
     </div>
     `;
+    // fill = "url(#lineFill)"
+    // filter = "url(#tvStatic)"
 }
 
 for (let i = 0; i < 12; i++) {
