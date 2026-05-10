@@ -153,12 +153,12 @@ for (let i = 0; i < 12; i++) {
     gameGridP3.insertAdjacentHTML("beforeend", sendNullGame());
 }
 
-const games = document.querySelector(".gameGridWrapper");
+const gamesGrid = document.querySelector(".gameGridWrapper");
 const game = document.querySelector(".game");
 const arrowLeft = document.querySelector(".arrowLeft");
 const arrowRight = document.querySelector(".arrowRight");
 
-games.addEventListener("wheel", (e) => {
+gamesGrid.addEventListener("wheel", (e) => {
     e.preventDefault();
 }, { passive: false });
 
@@ -181,14 +181,14 @@ function arrowsShow() {
 arrowsShow();
 
 arrowLeft.addEventListener("click", () => {
-    games.scrollBy({ left: -(game.clientWidth * 4), behavior: "smooth" });
+    gamesGrid.scrollBy({ left: -(game.clientWidth * 4), behavior: "smooth" });
 
     curPage -= 1;
     arrowsShow();
 });
 
 arrowRight.addEventListener("click", () => {
-    games.scrollBy({ left: (game.clientWidth * 4), behavior: "smooth" });
+    gamesGrid.scrollBy({ left: (game.clientWidth * 4), behavior: "smooth" });
 
     curPage += 1;
     arrowsShow();
