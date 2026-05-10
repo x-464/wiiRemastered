@@ -4,6 +4,8 @@ import { readFile } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
 import { invoke } from "@tauri-apps/api/core";
 
+let games = [];
+
 const fileDir = document.querySelector(".settingsBtnSVGLeft");
 
 fileDir.addEventListener("click", async () => {
@@ -18,9 +20,6 @@ fileDir.addEventListener("click", async () => {
     const isoPaths = entries
         .filter(entry => entry.isFile && entry.name?.toLowerCase().endsWith('.iso'))
         .map(entry => `${selected}${selected.endsWith('\\') || selected.endsWith('/') ? '' : '/'}${entry.name}`);
-
-    
-    const games = [];
     
     for (const isoPath of isoPaths) {
         const id = await invoke('get_id', { path: isoPath });
@@ -45,7 +44,7 @@ fileDir.addEventListener("click", async () => {
                 }
             }
         }
-        
+
         const game = {
             id,
             title: "",
