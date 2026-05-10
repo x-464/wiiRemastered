@@ -6,6 +6,11 @@
     font-family: "Roboto";
     src: url("/assets/fonts/Roboto.ttf");
 }
+@font-face {
+    font-family: "wii";
+    src: url("/assets/fonts/wii.ttf");
+}
+
 
 body{
     margin: 0;
