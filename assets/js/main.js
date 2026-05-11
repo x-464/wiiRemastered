@@ -46,9 +46,11 @@ fileDir.addEventListener("click", async () => {
             }
         }
 
+        let title = getTitle(id);
+
         const game = {
             id,
-            title: "",
+            title,
             isoPath,
             bnrPath,
             binPaths,
@@ -60,19 +62,7 @@ fileDir.addEventListener("click", async () => {
     }
     console.log(amountOfGames);
 
-    let gameAmount = amountOfGames;
-    const gameGrids = [gameGridP1, gameGridP2, gameGridP3];
-    const spacesTaken = [12, 12, 12];
-    const maxGames = 36;
-    const takenGames = maxGames - amountOfGames;
-
-    const page1 = 12 - gameAmount;
-    gameAmount - page1;
-    const page2 = 12 - (gameAmount - page1);
-    gameAmount - page2;
-    const page3 = 12 - (gameAmount - page2);
-    gameAmount - page3;
-    console.log(gameAmount, page1, page2, page3);
+    makeGames();
 });
 
 
@@ -80,30 +70,69 @@ const gameGridP1 = document.querySelector(".gameGrid.P1");
 const gameGridP2 = document.querySelector(".gameGrid.P2");
 const gameGridP3 = document.querySelector(".gameGrid.P3");
 
-async function makeNullGames() {
+async function makeGames() {
     const res = await fetch("/assets/svgs/nullGame.svg");
     const svgText = await res.text();
     const svg = `<div class="game">${svgText}</div>`;
+
+    const res2 = await fetch("/assets/svgs/null.svg");
+    const svgText2 = await res2.text();
+    const nullsvg = `<div class="game">${svgText2}</div>`;
     
+    let remainingGames = amountOfGames;
     const gameGrids = [gameGridP1, gameGridP2, gameGridP3];
-    const spacesTaken = [12, 12, 12];
+
+    const page1Games = Math.min(remainingGames, 12);
+    remainingGames -= page1Games;
+
+    const page2Games = Math.min(remainingGames, 12);
+    remainingGames -= page2Games;
+
+    const page3Games = Math.min(remainingGames, 12);
+    remainingGames -= page3Games;
+
+    const spacesTaken = [page1Games, page2Games, page3Games];
+
+    console.log(remainingGames, page1Games, page2Games, page3Games);
+
+    gameGridP1.innerHTML = "";
+    gameGridP2.innerHTML = "";
+    gameGridP3.innerHTML = "";
 
     for (let j = 0; j < 3; j++){
-        for (let i = 0; i < spacesTaken[j]; i++){
-            gameGrids[j].style.backgroundColor = "black";
-            spacesTaken[j]--;
-        }
-    }
-    
-
-    for (let j = 0; j < 3; j++){
-        for (let i = 0; i < spacesTaken[j]; i++) {
-            gameGrids[j].insertAdjacentHTML("beforeend", svg);
+        for (let i = 0; i < 12; i++){
+            if (i < spacesTaken[j]){
+                gameGrids[j].insertAdjacentHTML("beforeend", nullsvg);
+            }
+            else{
+                gameGrids[j].insertAdjacentHTML("beforeend", svg);
+            }
         }
     }
 }
-makeNullGames();
+makeGames();
 
+
+async function getTitle(id){
+    let title = "";
+
+    let db = await fetch("/assets/db/wiidb.xml");
+    let dbText = db.text();
+    const parser = new DOMParser();
+    const xmlParsed = parser.parseFromString(dbText, "application/xml");
+
+    const game = xmlParsed.getElementsByTagName("game");
+
+    for (const game of games){
+        const currentID = game.getElementsByTagName("id")[0]?.textContent.trim();
+
+        if (currentID === id){
+            title = game.getElementsByTagName("title")[0]?.textContent.trim();
+        }
+    }
+
+    return title;
+}
 
 
 const gamesGrid = document.querySelector(".gameGridWrapper");

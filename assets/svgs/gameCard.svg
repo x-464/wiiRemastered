@@ -1,0 +1,17 @@
+<svg class="gamePath" viewBox="0 0 200 113" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .channelWii {
+      fill: #4a4a4a;
+      font-family: "Roboto";
+      font-weight: 650;
+      font-size: 1.75rem;
+      opacity: 0.05;
+    }
+  </style>
+
+  <use href="/assets/svgs/game-base.svg#game-shell"></use>
+
+  <text class="channelWii">
+    <tspan x="79" y="69">Wii</tspan>
+  </text>
+</svg>
