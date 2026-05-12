@@ -41,7 +41,6 @@ body{
 }
 
 .wiiGrid{
-    
     background: repeating-linear-gradient(
         to bottom,
         rgb(248, 248, 248) 0px 2.5px,
@@ -63,17 +62,45 @@ body{
     backdrop-filter: blur(0.5px);
 }
 
-
-.gameGridWrapper {
+.topWrapper {
     margin-top: 4cqh;
-    min-width: 100cqw;
+    z-index: 3;
+    container-type: size;
+    position: relative;
+}
+.topWrapper::-webkit-scrollbar {
+    display: none;
+}
+
+.gameTitleWrapper{
+    position: absolute;
+    height: 10cqmin;
+    border-radius: 100cqmax;
+    background-color: rgb(252, 252, 252);
+    border: solid 0.6cqmin rgb(165, 165, 165);
+    box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.25);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    pointer-events: none;
+    padding: 0 5cqmin;
+}
+
+.gameTitle{
+    font-family: "Roboto";
+    font-weight: 450;
+    font-size: 5.5cqmin;
+}
+
+.scrollTrack{
+    height: 100%;
     container-type: size;
     display: flex;
+    place-items: center;
     overflow: scroll;
     scrollbar-width: none;
-}
-.gameGridWrapper::-webkit-scrollbar {
-    display: none;
+    position: relative;
 }
 
 .gameGrid{
@@ -89,44 +116,47 @@ body{
 }
 
 .game{
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    width: 21.07cqw;
+    height: 32.5cqh;
+    aspect-ratio: 16 / 9;
 }
 
-.gamePath{
-    display: block;
-    z-index: 2;
-    width: 100%;
-    height: 100%;
-}
 
 .arrow{
     position: absolute;
-    top: 50cqh;
+    top: 48cqh;
     width: 15cqmin;
     height: 15cqmin;
-    z-index: 4;
-    animation: arrowDefault 1s infinite;
+    z-index: 2;
 }
 .arrowLeft{
     left: 3.5cqw;
+    animation: arrowReverse 1.5s infinite;
 }
 .arrowRight{
     left: 92.5cqw;
+    animation: arrowDefault 1.5s infinite;
 }
 
-@keyframes arrrowDefault {
+@keyframes arrowDefault {
     0%{
         transform: translateX(0cqmin);
     }
-    50%{
-        transform: translateX(1cqmin);
+    35%{
+        transform: translateX(1.5cqmin);
     }
     100%{
+        transform: translateX(0cqmin);
+    }
+}
+@keyframes arrowReverse {
+    0% {
+        transform: translateX(0cqmin);
+    }
+    35% {
+        transform: translateX(-1.5cqmin);
+    }
+    100% {
         transform: translateX(0cqmin);
     }
 }
@@ -138,6 +168,7 @@ body{
     flex-wrap: wrap;
     justify-content: center;
     align-content: flex-start;
+    z-index: 1;
 }
 
 .clock{
@@ -148,7 +179,7 @@ body{
     letter-spacing: -0.2cqmin;
     color: #9d9d9d;
     margin-left: 9cqmin;
-    z-index: 2;
+    user-select: none;
 }
 
 .dayNight{
@@ -159,7 +190,7 @@ body{
     color: #9d9d9d;
     margin-top: 4.5cqmin;
     margin-left: 2.5cqmin;
-    z-index: 2;
+    user-select: none;
 }
 
 .date{
@@ -170,7 +201,8 @@ body{
     color: #79797a;
     text-align: center;
     margin-top: 1cqmin;
-    z-index: 2;
+    z-index: 1;
+    user-select: none;
 }
 
 .menu{
@@ -193,7 +225,7 @@ body{
     filter: drop-shadow(2cqw 2cqh 5px rgba(0, 0, 0, 0.1));
     transition: transform 0.1s ease-in-out;
     cursor: pointer;
-    z-index: 4;
+    z-index: 1;
 }
 .settingsBtnSVG:hover {
     transform: scale(1.1) translateY(-1.5cqw);

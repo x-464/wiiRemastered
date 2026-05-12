@@ -352175,13 +352175,13 @@ Some of the current features includes DVD, SDHC, SMB, USB 2.0 storage device sup
 			<synopsis>An experimental modification of Mupen64GC Nintendo 64 Emulator.
 
 NEW OPTIONS FROM WII64:
- * ScalePitch    Changes pitch according to emulation speed.
- * VideoMode    0: Auto - 1: 480i60 - 2: 480sf30 - 3: 240p60 - 4: 480p60 - 5: 576i50 - 6:576sf25 - 7: 288p50 - 8: 576p50
- * PixelClock    0: Auto - 1: 13.5 MHz - 2: 27 MHz
- * TrapFilter    Affects composite video, similar to the GameCube's output.    Recommended for lower-end CRT TVs.
+ * ScalePitch   Changes pitch according to emulation speed.
+ * VideoMode   0: Auto - 1: 480i60 - 2: 480sf30 - 3: 240p60 - 4: 480p60 - 5: 576i50 - 6:576sf25 - 7: 288p50 - 8: 576p50
+ * PixelClock   0: Auto - 1: 13.5 MHz - 2: 27 MHz
+ * TrapFilter   Affects composite video, similar to the GameCube's output.   Recommended for lower-end CRT TVs.
  * PollRate
  * smbusername, smbpassword, smbsharename, smbipaddr
- * rompath    Automatically load a ROM file on startup.
+ * rompath   Automatically load a ROM file on startup.
 
 
 QUICK USAGE:
