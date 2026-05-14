@@ -1,5 +1,4 @@
 use std::fs;
-use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
 fn extract_tag_text<'a>(block: &'a str, tag: &str) -> Option<&'a str> {

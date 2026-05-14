@@ -10,35 +10,74 @@
 <body>
     <div class="screen">
         <div class="wiiGrid">
-            
-            <!-- <div class="reference"></div> -->
 
             <div class="topWrapper">
-                <svg class="arrow arrowLeft" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                    viewBox="0 0 50.32 98.53">
-                    <defs>
-                        <style>
-                            .arrowL1 {
-                                fill: #3965ad;
-                            }
-                
-                            .arrowL2 {
-                                fill: url(#radial-gradientL);
-                            }
-                        </style>
-                        <radialGradient id="radial-gradientL" cx="41.03" cy="49.27" fx="41.03" fy="49.27" r="35.86"
-                            gradientTransform="translate(98.53 79.22) rotate(-180) scale(1 .61)" gradientUnits="userSpaceOnUse">
-                            <stop offset="0" stop-color="#e1f4fd" />
-                            <stop offset="1" stop-color="#ace0f3" />
-                        </radialGradient>
-                    </defs>
-                    <path class="arrowL2" d="M2.39,49.27L48.08,3.58c-1,10.81-2.79,32.1-2.79,45.69s1.79,34.87,2.79,45.69L2.39,49.27Z" />
-                    <path class="arrowL1"
-                        d="M45.59,8.89c-1.01,11.55-2.31,28.75-2.31,40.37s1.3,28.82,2.31,40.37L5.22,49.27,45.59,8.89M49.26,0c-.26,0-.52.1-.74.31L.31,48.52c-.41.41-.41,1.08,0,1.49l48.21,48.21c.22.22.48.31.74.31.57,0,1.12-.47,1.06-1.15-.8-8.43-3.03-33.17-3.03-48.11s2.23-39.68,3.03-48.11c.06-.68-.48-1.15-1.06-1.15h0Z" />
-                </svg>
+                <div class="arrowWrap arrowWrapL">
+                    <svg class="arrowBtn arrowMinus" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                        viewBox="0 0 1000 1000">
+                        <defs>
+                            <style>
+                                .arrowMinus1 {
+                                    fill: #fff;
+                                }
+                                .arrowMinus2 {
+                                    opacity: .25;
+                                }
+                                .arrowMinus3 {
+                                    fill: url(#radial-gradient);
+                                }
+                                .arrowMinus4 {
+                                    fill: #58bfdf;
+                                }
+                                .arrowMinus5 {
+                                    fill: #a4a4a5;
+                                }
+                            </style>
+                            <radialGradient id="radial-gradient" cx="500" cy="498" fx="500" fy="498" r="485.07"
+                                gradientTransform="translate(0 2)" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#d6d5d5" />
+                                <stop offset="1" stop-color="#babebf" />
+                            </radialGradient>
+                        </defs>
+                        <g>
+                            <path class="arrowMinus3"
+                                d="M500,985.07c-267.16,0-485.07-217.91-485.07-485.07S232.84,14.93,500,14.93s485.07,217.91,485.07,485.07-217.91,485.07-485.07,485.07Z" />
+                            <path class="arrowMinus4"
+                                d="M500,29.85c259.7,0,470.15,210.45,470.15,470.15s-210.45,470.15-470.15,470.15S29.85,759.7,29.85,500,240.3,29.85,500,29.85M500,0C223.88,0,0,223.88,0,500s223.88,500,500,500,500-223.88,500-500S776.12,0,500,0h0Z" />
+                        </g>
+                        <g class="arrowMinus2">
+                            <path class="arrowMinus1"
+                                d="M646.27,191.04h0c-65.67-86.57-176.12-134.33-291.04-114.93-162.69,29.85-270.15,183.58-241.79,346.27,13.43,73.13,52.24,134.33,105.97,177.61,44.78,8.96,91.04,10.45,138.81,2.99,194.03-34.33,322.39-219.4,288.06-411.94h-.01Z" />
+                        </g>
+                        <rect class="arrowMinus5" x="150" y="450" width="700" height="100" />
+                    </svg>
+                    <svg class="arrow arrowLeft" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                        viewBox="0 0 75.34 99.92">
+                        <defs>
+                            <style>
+                                .arrowL1 {
+                                    fill: #3965ad;
+                                }
+                                .arrowL2 {
+                                    fill: url(#radial-gradientL);
+                                }
+                            </style>
+                            <radialGradient id="radial-gradientL" cx="88.58" cy="51.73" fx="88.58" fy="51.73" r="39.23"
+                                gradientTransform="translate(139.09 78.29) rotate(-180) scale(.99 .55)" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#e1f4fd" />
+                                <stop offset="1" stop-color="#ace0f3" />
+                            </radialGradient>
+                        </defs>
+                        <path class="arrowL2"
+                            d="M49.68,98.05c-.63,0-1.22-.25-1.67-.69L2.76,52.1c-.57-.57-.89-1.33-.89-2.14s.31-1.57.89-2.14L48.01,2.57c.45-.45,1.04-.69,1.67-.69,1.3,0,2.37,1.06,2.37,2.36v.19l-.04.19c-.05.27-5.53,26.96-5.53,45.34s5.48,45.08,5.53,45.34l.04.19v.19c0,1.3-1.06,2.36-2.37,2.36Z" />
+                        <path class="arrowL1"
+                            d="M49.68,3.75c.25,0,.49.19.49.49,0,0-5.57,26.93-5.57,45.72s5.57,45.72,5.57,45.72c0,.29-.24.49-.49.49-.12,0-.24-.04-.34-.14L4.09,50.78c-.45-.45-.45-1.18,0-1.63L49.34,3.89c.1-.1.22-.14.34-.14M49.68,0h0c-1.13,0-2.19.44-2.99,1.24L1.43,46.49c-1.91,1.91-1.91,5.02,0,6.94l45.25,45.25c.8.8,1.86,1.24,2.99,1.24,2.34,0,4.24-1.9,4.24-4.24v-.38l-.08-.38c-.05-.27-5.49-26.78-5.49-44.96s5.44-44.7,5.49-44.96l.08-.38v-.38c0-2.34-1.9-4.24-4.24-4.24h0Z" />
+                    </svg>
+                </div>
 
                 <div class="gameTitleWrapper">
-                    <div class="gameTitle">This is a test title</div>
+                    <div class="gameTitle">This is a test channel</div>
+                    <!-- <div class="gameTitle">Mii Channel</div> -->
                 </div>
 
                 <div class="scrollTrack">
@@ -47,28 +86,73 @@
                     <div class="gameGrid P3"></div>
                 </div>
 
-                <svg class="arrow arrowRight" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                    viewBox="0 0 50.32 98.53">
-                    <defs>
-                        <style>
-                            .arrowR1 {
-                                fill: #3965ad;
-                            }
-                
-                            .arrowR2 {
-                                fill: url(#radial-gradientR);
-                            }
-                        </style>
-                        <radialGradient id="radial-gradientR" cx="-8.53" cy="49.27" fx="-8.53" fy="49.27" r="37.44"
-                            gradientTransform="translate(0 19.32) scale(1 .61)" gradientUnits="userSpaceOnUse">
-                            <stop offset="0" stop-color="#e1f4fd" />
-                            <stop offset="1" stop-color="#ace0f3" />
-                        </radialGradient>
-                    </defs>
-                    <path class="arrowR2" d="M1.3,96.95c.94-9.92,2.98-33.2,2.98-47.69S2.24,11.5,1.3,1.58l47.69,47.69L1.3,96.95Z" />
-                    <path class="arrowR1"
-                        d="M4.73,8.89l40.37,40.37L4.73,89.64c1.01-11.55,2.31-28.75,2.31-40.37s-1.3-28.82-2.31-40.37M1.06,0C.49,0-.06.47,0,1.15c.8,8.43,3.03,33.17,3.03,48.11S.81,88.95,0,97.38c-.06.68.48,1.15,1.06,1.15.26,0,.52-.1.74-.31l48.21-48.21c.41-.41.41-1.08,0-1.49L1.8.31C1.59.1,1.32,0,1.06,0h0Z" />
-                </svg>
+                <div class="arrowWrap arrowWrapR">
+                    <svg class="arrowBtn arrowPlus" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                        viewBox="0 0 1000 1000">
+                        <defs>
+                            <style>
+                                .arrowPlus1 {
+                                    fill: #fff;
+                                }
+                    
+                                .arrowPlus2 {
+                                    opacity: .25;
+                                }
+                    
+                                .arrowPlus3 {
+                                    fill: url(#plusGradient);
+                                }
+                    
+                                .arrowPlus4 {
+                                    fill: #58bfdf;
+                                }
+                    
+                                .arrowPlus5 {
+                                    fill: #a4a4a5;
+                                }
+                            </style>
+                            <radialGradient id="plusGradient" cx="500" cy="498" fx="500" fy="498" r="485.07"
+                                gradientTransform="translate(0 2)" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#d6d5d5" />
+                                <stop offset="1" stop-color="#babebf" />
+                            </radialGradient>
+                        </defs>
+                        <g>
+                            <path class="arrowPlus3"
+                                d="M500,985.07c-267.16,0-485.07-217.91-485.07-485.07S232.84,14.93,500,14.93s485.07,217.91,485.07,485.07-217.91,485.07-485.07,485.07Z" />
+                            <path class="arrowPlus4"
+                                d="M500,29.85c259.7,0,470.15,210.45,470.15,470.15s-210.45,470.15-470.15,470.15S29.85,759.7,29.85,500,240.3,29.85,500,29.85M500,0C223.88,0,0,223.88,0,500s223.88,500,500,500,500-223.88,500-500S776.12,0,500,0h0Z" />
+                        </g>
+                        <g class="arrowPlus2">
+                            <path class="arrowPlus1"
+                                d="M646.27,191.04h0c-65.67-86.57-176.12-134.33-291.04-114.93-162.69,29.85-270.15,183.58-241.79,346.27,13.43,73.13,52.24,134.33,105.97,177.61,44.78,8.96,91.04,10.45,138.81,2.99,194.03-34.33,322.39-219.4,288.06-411.94h-.01Z" />
+                        </g>
+                        <rect class="arrowPlus5" x="450" y="150" width="100" height="700" />
+                        <rect class="arrowPlus5" x="150" y="450" width="700" height="100" />
+                    </svg>
+                    <svg class="arrow arrowRight" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                        viewBox="0 0 75.35 99.92">
+                        <defs>
+                            <style>
+                                .arrowR1 {
+                                    fill: #3965ad;
+                                }
+                                .arrowR2 {
+                                    fill: url(#radial-gradientR);
+                                }
+                            </style>
+                            <radialGradient id="radial-gradientR" cx="23.04" cy="49.96" fx="23.04" fy="49.96" r="39.23"
+                                gradientTransform="translate(.94 22.6) scale(.99 .55)" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#e1f4fd" />
+                                <stop offset="1" stop-color="#ace0f3" />
+                            </radialGradient>
+                        </defs>
+                        <path class="arrowR2"
+                            d="M25.67,98.05c-1.3,0-2.37-1.06-2.37-2.36v-.19l.04-.19c.06-.27,5.53-26.96,5.53-45.34S23.4,4.88,23.34,4.62l-.04-.19v-.19c0-1.3,1.06-2.36,2.37-2.36.63,0,1.22.25,1.67.69l45.25,45.25c1.18,1.18,1.18,3.1,0,4.28l-45.25,45.25c-.45.45-1.04.69-1.67.69Z" />
+                        <path class="arrowR1"
+                            d="M25.67,3.75c.12,0,.24.04.34.14l45.25,45.25c.45.45.45,1.18,0,1.63l-45.25,45.25c-.1.1-.22.14-.34.14-.25,0-.49-.19-.49-.49,0,0,5.57-26.93,5.57-45.72S25.18,4.24,25.18,4.24c0-.29.24-.49.49-.49M25.67,0h0c-2.34,0-4.24,1.9-4.24,4.24v.38l.08.38c.05.27,5.49,26.78,5.49,44.96s-5.44,44.7-5.49,44.96l-.08.38v.38c0,2.34,1.9,4.24,4.24,4.24,1.13,0,2.19-.44,2.99-1.24l45.25-45.25c1.91-1.91,1.91-5.02,0-6.93L28.66,1.24c-.8-.8-1.86-1.24-2.99-1.24h0Z" />
+                    </svg>
+                </div>
             </div>
 
             <div class="bottomBar">

@@ -74,23 +74,26 @@ body{
 
 .gameTitleWrapper{
     position: absolute;
-    height: 10cqmin;
+    height: 10cqh;
     border-radius: 100cqmax;
     background-color: rgb(252, 252, 252);
-    border: solid 0.6cqmin rgb(165, 165, 165);
+    /* border: solid 0.6cqmin rgb(180, 180, 180); */
     box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.25);
     display: none;
     align-items: center;
     justify-content: center;
     z-index: 2;
     pointer-events: none;
-    padding: 0 5cqmin;
+    /* padding: 0 10cqmin; */
+    padding: 0.75cqh clamp(2cqw, 4cqw, 10cqw);
 }
 
 .gameTitle{
     font-family: "Roboto";
     font-weight: 450;
-    font-size: 5.5cqmin;
+    font-size: 5.75cqmin;
+    color: #696969;
+    text-align: center;
 }
 
 .scrollTrack{
@@ -109,10 +112,10 @@ body{
     place-items: center;
 }
 .P1{
-    padding-left: 7.85cqw;
+    margin-left: 7.85cqw;
 }
 .P3{
-    padding-right: 7.85cqw;
+    margin-right: 7.85cqw;
 }
 
 .game{
@@ -122,43 +125,75 @@ body{
 }
 
 
-.arrow{
+.arrowWrap{
     position: absolute;
-    top: 48cqh;
-    width: 15cqmin;
-    height: 15cqmin;
+    top: 41cqh;
+    left: 3cqw;
+    height: 17.5cqh;
+    aspect-ratio: 0.6 / 1;
     z-index: 2;
-}
-.arrowLeft{
-    left: 3.5cqw;
+    overflow: visible;
+    display: flex;
+    align-items: center;
     animation: arrowReverse 1.5s infinite;
 }
-.arrowRight{
-    left: 92.5cqw;
+.arrowWrapR {
+    left: 92cqw;
     animation: arrowDefault 1.5s infinite;
 }
 
+.arrow{
+    position: absolute;
+    height: 17.5cqh;
+}
+
+.arrowBtn{
+    position: absolute;
+    z-index: 1;
+    left: 1.9cqw;
+    height: 22.5cqh;
+    transform-origin: center left;
+    transform: scale(0);
+}
+.arrowPlus{
+    left: -5.5cqw;
+    transform-origin: center right;
+}
+
+.arrowWrap:hover .arrow{
+    animation: hoverSquash 0.2s 1 forwards;
+}
+.arrowWrap:hover .arrowBtn{
+    animation: plusShow 0.1s ease-in-out 0.1s 1 forwards;
+}
+.arrowWrap:not(:hover) .arrowBtn{
+    animation: plusHide 0.2s ease-in-out 1 forwards;
+}
+
 @keyframes arrowDefault {
-    0%{
-        transform: translateX(0cqmin);
-    }
-    35%{
-        transform: translateX(1.5cqmin);
-    }
-    100%{
-        transform: translateX(0cqmin);
-    }
+    0%   { transform: translateX(0cqmin); }
+    35%  { transform: translateX(1.5cqmin); }
+    100% { transform: translateX(0cqmin); }
 }
 @keyframes arrowReverse {
-    0% {
-        transform: translateX(0cqmin);
-    }
-    35% {
-        transform: translateX(-1.5cqmin);
-    }
-    100% {
-        transform: translateX(0cqmin);
-    }
+    0%   { transform: translateX(0cqmin); }
+    35%  { transform: translateX(-1.5cqmin); }
+    100% { transform: translateX(0cqmin); }
+}
+@keyframes hoverSquash {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(0.75, 0.25); }
+    100% { transform: scale(1); }
+}
+@keyframes plusShow {
+    0%   { transform: scale(0); }
+    30%  { transform: scale(0.5, 1); }
+    100% { transform: scale(1.25); }
+}
+@keyframes plusHide {
+    0%   { transform: scale(1.25); }
+    30%  { transform: scale(0.5, 1); }
+    100% { transform: scale(0); }
 }
 
 

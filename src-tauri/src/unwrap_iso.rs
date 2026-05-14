@@ -188,24 +188,50 @@ fn run_wit_extract(iso_path: &Path, extract_dir: &Path) -> Result<(), String> {
     }
     fs::create_dir_all(extract_dir).map_err(|e| e.to_string())?;
 
+    // let output = if cfg!(target_os = "macos") {
+    //     Command::new("arch")
+    //         .arg("-x86_64")
+    //         .arg("wit")
+    //         .arg("extract")
+    //         .arg(iso_path)
+    //         .arg("--psel=data")
+    //         .arg("--overwrite")
+    //         .arg("--dest")
+    //         .arg(extract_dir)
+    //         .output()
+    //         .map_err(|e| format!("Failed to run wit via Rosetta: {}", e))?
+    // } else {
+    //     Command::new("wit")
+    //         .arg("extract")
+    //         .arg(iso_path)
+    //         .arg("--psel=data")
+    //         .arg("--overwrite")
+    //         .arg("--dest")
+    //         .arg(extract_dir)
+    //         .output()
+    //         .map_err(|e| format!("Failed to run wit: {}", e))?
+    // };
+
     let output = if cfg!(target_os = "macos") {
         Command::new("arch")
             .arg("-x86_64")
             .arg("wit")
             .arg("extract")
             .arg(iso_path)
-            .arg("--psel=data")
-            .arg("--overwrite")
+            .arg("--files")
+            .arg("+opening.bnr")
+            .arg("--flat")
             .arg("--dest")
-            .arg(extract_dir)
+            .arg(extract_dir)  // Use parent dir
             .output()
             .map_err(|e| format!("Failed to run wit via Rosetta: {}", e))?
     } else {
         Command::new("wit")
             .arg("extract")
             .arg(iso_path)
-            .arg("--psel=data")
-            .arg("--overwrite")
+            .arg("--files")
+            .arg("+opening.bnr")
+            .arg("--flat")
             .arg("--dest")
             .arg(extract_dir)
             .output()
