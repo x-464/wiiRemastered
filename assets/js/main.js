@@ -221,33 +221,42 @@ function attachListenersForTitles() {
     const gameTitle = document.querySelector(".gameTitle");
 
     for (let i = 0; i < amountOfGames; i++){
-        // gameElements.forEach(game => {
-            gameElements[i].addEventListener("mouseenter", () => {
-                const gameRect = gameElements[i].getBoundingClientRect();
-                const wrapperRect = topWrapper.getBoundingClientRect();
+        gameElements[i].addEventListener("mouseenter", () => {
+            const gameRect = gameElements[i].getBoundingClientRect();
+            const wrapperRect = topWrapper.getBoundingClientRect();
 
-                const currentGameX = (gameRect.left - wrapperRect.left) + (gameRect.width / 2);
-                const currentGameY = gameRect.bottom - wrapperRect.top;
+            const currentGameX = (gameRect.left - wrapperRect.left) + (gameRect.width / 2);
+            const currentGameY = gameRect.bottom - wrapperRect.top;
 
-                gameTitleWrapper.style.display = "flex";
+            gameTitle.innerHTML = `${games[i].title}`;
+            gameTitleWrapper.style.display = "flex";
 
-                gameTitleWrapper.style.top = `${currentGameY + 10}px`;
-                gameTitleWrapper.style.left = `${currentGameX}px`;
+            gameTitleWrapper.style.top = `${currentGameY + 10}px`;
+            gameTitleWrapper.style.left = `${currentGameX}px`;
 
-                const x = gameRect.left - wrapperRect.left + gameRect.width / 2;
-                const y = gameRect.top - wrapperRect.top + gameRect.height + 10;
+            const x = gameRect.left - wrapperRect.left + gameRect.width / 2;
+            const y = gameRect.top - wrapperRect.top + gameRect.height + 10;
 
-                gameTitleWrapper.style.display = "flex";
-                gameTitleWrapper.style.left = "0px";
-                gameTitleWrapper.style.top = "0px";
-                gameTitleWrapper.style.transform = `translate(${x}px, ${y}px) translateX(-50%)`;
+            gameTitleWrapper.style.display = "flex";
+            gameTitleWrapper.style.left = "0px";
+            gameTitleWrapper.style.top = "0px";
+            gameTitleWrapper.style.transform = `translate(${x}px, ${y}px) translateX(-50%)`;
 
-                gameTitle.innerHTML = `${games[i].title}`;
-            })
-            gameElements[i].addEventListener("mouseleave", () => {
-                gameTitleWrapper.style.display = "none";
-            })
-        // })
+            const titleRect = gameTitleWrapper.getBoundingClientRect();
+            let correctedX = x;
+
+            if (titleRect.left < wrapperRect.left) {
+                correctedX += wrapperRect.left - titleRect.left;
+            }
+            if (titleRect.right > wrapperRect.right) {
+                correctedX -= titleRect.right - wrapperRect.right;
+            }
+
+            gameTitleWrapper.style.transform = `translate(${correctedX}px, ${y}px) translateX(-50%)`;
+        })
+        gameElements[i].addEventListener("mouseleave", () => {
+            gameTitleWrapper.style.display = "none";
+        })
     }
 }
 
@@ -305,6 +314,47 @@ async function main(){
 
     fileDir.addEventListener("click", async () => {
         await getGameInfo();
+
+
+        const devices = await navigator.hid.requestDevice({ filters: [] });
+
+        for (const device of devices) {
+            await device.open();
+
+            console.log("DEVICE", {
+                productName: device.productName,
+                vendorId: device.vendorId,
+                productId: device.productId,
+                opened: device.opened,
+                collections: device.collections.map(c => ({
+                    usagePage: c.usagePage,
+                    usage: c.usage,
+                    type: c.type,
+                    inputReports: c.inputReports.map(r => ({
+                        reportId: r.reportId,
+                        items: r.items.length
+                    })),
+                    outputReports: c.outputReports.map(r => ({
+                        reportId: r.reportId,
+                        items: r.items.length
+                    })),
+                    featureReports: c.featureReports.map(r => ({
+                        reportId: r.reportId,
+                        items: r.items.length
+                    }))
+                }))
+            });
+
+            device.oninputreport = (event) => {
+                console.log(
+                    "INPUT",
+                    device.productName,
+                    "reportId:",
+                    event.reportId,
+                    [...new Uint8Array(event.data.buffer)]
+                );
+            };
+        }
     });
 
     scrollTrack.addEventListener("wheel", (e) => {
