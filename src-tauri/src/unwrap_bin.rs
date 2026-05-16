@@ -213,28 +213,6 @@ fn extract_u8_to_dir(u8_data: &[u8], output_dir: &Path) -> Result<Vec<PathBuf>, 
     Ok(extracted_files)
 }
 
-fn collect_image_candidates(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
-    let entries = fs::read_dir(dir).map_err(|e| e.to_string())?;
-
-    for entry in entries {
-        let entry = entry.map_err(|e| e.to_string())?;
-        let path = entry.path();
-
-        if path.is_dir() {
-            collect_image_candidates(&path, out)?;
-        } else if path.is_file() {
-            if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-                let ext = ext.to_ascii_lowercase();
-                if ext == "tpl" || ext == "tex0" {
-                    out.push(path);
-                }
-            }
-        }
-    }
-
-    Ok(())
-}
-
 fn unwrap_lz77_container(data: &[u8]) -> Result<&[u8], String> {
     if data.len() < 8 {
         return Err("LZ77 container too small".into());
@@ -274,37 +252,36 @@ pub fn unwrap_bin(bin_path: String) -> Result<Vec<ImageSource>, String> {
     }
 
     let data = fs::read(&path).map_err(|e| e.to_string())?;
-
     let imd5_payload = strip_imd5(&data)?;
 
-let inner_u8 = {
-    let magic = read_u32_be(imd5_payload, 0).unwrap_or(0);
+    let inner_u8 = {
+        let magic = read_u32_be(imd5_payload, 0).unwrap_or(0);
 
-    if magic == 0x55AA382D {
-        imd5_payload.to_vec()
-    } else if magic == 0x4C5A3737 {
-        let lz_stream = unwrap_lz77_container(imd5_payload)?;
-        decompress_lz77(lz_stream)?
-    } else if imd5_payload.first() == Some(&0x10) {
-        decompress_lz77(imd5_payload)?
-    } else {
+        if magic == 0x55AA382D {
+            imd5_payload.to_vec()
+        } else if magic == 0x4C5A3737 {
+            let lz_stream = unwrap_lz77_container(imd5_payload)?;
+            decompress_lz77(lz_stream)?
+        } else if imd5_payload.first() == Some(&0x10) {
+            decompress_lz77(imd5_payload)?
+        } else {
+            return Err(format!(
+                "Unsupported payload after IMD5. First 4 bytes: {:02X} {:02X} {:02X} {:02X}",
+                imd5_payload.get(0).copied().unwrap_or(0),
+                imd5_payload.get(1).copied().unwrap_or(0),
+                imd5_payload.get(2).copied().unwrap_or(0),
+                imd5_payload.get(3).copied().unwrap_or(0),
+            ));
+        }
+    };
+
+    let u8_magic = read_u32_be(&inner_u8, 0)?;
+    if u8_magic != 0x55AA382D {
         return Err(format!(
-            "Unsupported payload after IMD5. First 4 bytes: {:02X} {:02X} {:02X} {:02X}",
-            imd5_payload.get(0).copied().unwrap_or(0),
-            imd5_payload.get(1).copied().unwrap_or(0),
-            imd5_payload.get(2).copied().unwrap_or(0),
-            imd5_payload.get(3).copied().unwrap_or(0),
+            "Inner payload is not U8, found magic {:#X}",
+            u8_magic
         ));
     }
-};
-
-let u8_magic = read_u32_be(&inner_u8, 0)?;
-if u8_magic != 0x55AA382D {
-    return Err(format!(
-        "Inner payload is not U8, found magic {:#X}",
-        u8_magic
-    ));
-}
 
     let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("bin");
     let parent = path.parent().unwrap_or(Path::new("."));
@@ -314,22 +291,98 @@ if u8_magic != 0x55AA382D {
         fs::remove_dir_all(&output_dir).map_err(|e| e.to_string())?;
     }
 
-    extract_u8_to_dir(&inner_u8, &output_dir)?;
+    let extracted_files = extract_u8_to_dir(&inner_u8, &output_dir)?;
 
-    let mut candidates = Vec::new();
-    collect_image_candidates(&output_dir, &mut candidates)?;
-
-    if candidates.is_empty() {
+    if extracted_files.is_empty() {
         return Err(format!(
-            "No image candidate files (.tpl/.tex0) found in {}",
-            output_dir.display()
+            "No files were extracted from {}",
+            path.display()
         ));
     }
 
-    Ok(candidates
+    Ok(extracted_files
         .into_iter()
         .map(|p| ImageSource {
             source_path: p.display().to_string(),
         })
         .collect())
 }
+
+// #[tauri::command]
+// pub fn unwrap_bin(bin_path: String) -> Result<Vec<ImageSource>, String> {
+//     let path = PathBuf::from(&bin_path);
+
+//     if !path.is_file() {
+//         return Err("Provided bin path is not a file".into());
+//     }
+
+//     let file_name = path
+//         .file_name()
+//         .and_then(|n| n.to_str())
+//         .unwrap_or("unknown.bin")
+//         .to_ascii_lowercase();
+
+//     if file_name != "banner.bin" && file_name != "icon.bin" {
+//         return Err("This function only supports banner.bin or icon.bin".into());
+//     }
+
+//     let data = fs::read(&path).map_err(|e| e.to_string())?;
+
+//     let imd5_payload = strip_imd5(&data)?;
+
+// let inner_u8 = {
+//     let magic = read_u32_be(imd5_payload, 0).unwrap_or(0);
+
+//     if magic == 0x55AA382D {
+//         imd5_payload.to_vec()
+//     } else if magic == 0x4C5A3737 {
+//         let lz_stream = unwrap_lz77_container(imd5_payload)?;
+//         decompress_lz77(lz_stream)?
+//     } else if imd5_payload.first() == Some(&0x10) {
+//         decompress_lz77(imd5_payload)?
+//     } else {
+//         return Err(format!(
+//             "Unsupported payload after IMD5. First 4 bytes: {:02X} {:02X} {:02X} {:02X}",
+//             imd5_payload.get(0).copied().unwrap_or(0),
+//             imd5_payload.get(1).copied().unwrap_or(0),
+//             imd5_payload.get(2).copied().unwrap_or(0),
+//             imd5_payload.get(3).copied().unwrap_or(0),
+//         ));
+//     }
+// };
+
+// let u8_magic = read_u32_be(&inner_u8, 0)?;
+// if u8_magic != 0x55AA382D {
+//     return Err(format!(
+//         "Inner payload is not U8, found magic {:#X}",
+//         u8_magic
+//     ));
+// }
+
+//     let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("bin");
+//     let parent = path.parent().unwrap_or(Path::new("."));
+//     let output_dir = parent.join(format!("{}_inner_u8", stem));
+
+//     if output_dir.exists() {
+//         fs::remove_dir_all(&output_dir).map_err(|e| e.to_string())?;
+//     }
+
+//     extract_u8_to_dir(&inner_u8, &output_dir)?;
+
+//     let mut candidates = Vec::new();
+//     collect_image_candidates(&output_dir, &mut candidates)?;
+
+//     if candidates.is_empty() {
+//         return Err(format!(
+//             "No image candidate files (.tpl/.tex0) found in {}",
+//             output_dir.display()
+//         ));
+//     }
+
+//     Ok(candidates
+//         .into_iter()
+//         .map(|p| ImageSource {
+//             source_path: p.display().to_string(),
+//         })
+//         .collect())
+// }

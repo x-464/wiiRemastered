@@ -18,19 +18,20 @@ fn safe_stem(path: &Path) -> String {
         .collect()
 }
 
-fn png_output_root(app: &AppHandle) -> Result<PathBuf, String> {
+fn png_output_root(app: &AppHandle, title: String) -> Result<PathBuf, String> {
     let root = app
         .path()
         .app_data_dir()
         .map_err(|e| format!("Failed to resolve app data dir: {}", e))?
-        .join("generated_pngs");
+        .join("generated_pngs")
+        .join(title);
 
     fs::create_dir_all(&root).map_err(|e| e.to_string())?;
     Ok(root)
 }
 
 #[tauri::command]
-pub fn tpl_to_png(app: AppHandle, tpl_path: String) -> Result<String, String> {
+pub fn tpl_to_png(app: AppHandle, tpl_path: String, title: String) -> Result<String, String> {
     let tpl = PathBuf::from(&tpl_path);
 
     if !tpl.is_file() {
@@ -47,7 +48,7 @@ pub fn tpl_to_png(app: AppHandle, tpl_path: String) -> Result<String, String> {
         return Err("Provided file is not a .tpl".to_string());
     }
 
-    let out_root = png_output_root(&app)?;
+    let out_root = png_output_root(&app, title)?;
     let file_name = format!("{}.png", safe_stem(&tpl));
     let png_path = out_root.join(file_name);
 

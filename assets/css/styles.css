@@ -160,6 +160,12 @@ body{
     transform-origin: center right;
 }
 
+.arrowBtnClick{
+    animation: arrowClick 0.2s 1 forwards;
+}
+.arrowBtn:hover{
+    animation: arrowClick 0.2s 1 forwards;
+}
 .arrowWrap:hover .arrow{
     animation: hoverSquash 0.2s 1 forwards;
 }
@@ -168,6 +174,9 @@ body{
 }
 .arrowWrap:not(:hover) .arrowBtn{
     animation: plusHide 0.2s ease-in-out 1 forwards;
+}
+.arrowWrap:not(:hover) .arrow{
+    animation: unhoverSquash 0.2s 0.1s 1 forwards;
 }
 
 @keyframes arrowDefault {
@@ -180,9 +189,32 @@ body{
     35%  { transform: translateX(-1.5cqmin); }
     100% { transform: translateX(0cqmin); }
 }
+/* @keyframes arrowClick {
+    0%{ filter: brightness(1); }
+    50% { filter: brightness(6); }
+    100% { filter: brightness(1); }
+} */
+@keyframes arrowClick {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.2;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
 @keyframes hoverSquash {
     0%   { transform: scale(1); }
     35%  { transform: scale(0.75, 0.25); }
+    100% { transform: scale(1); }
+}
+@keyframes unhoverSquash {
+    0% { transform: scale(1); }
+    35% { transform: scale(0.25, 0.75); }
     100% { transform: scale(1); }
 }
 @keyframes plusShow {

@@ -6,6 +6,7 @@ mod unwrap_iso;
 mod unwrap_bnr;
 mod unwrap_bin;
 mod tpl_to_png;
+mod brlyt_to_json;
 
 pub fn run() {
   tauri::Builder::default()
@@ -27,7 +28,8 @@ pub fn run() {
       unwrap_iso::unwrap_iso, 
       unwrap_bnr::unwrap_bnr,
       unwrap_bin::unwrap_bin,
-      tpl_to_png::tpl_to_png
+      tpl_to_png::tpl_to_png,
+      brlyt_to_json::convert_brlyt
       ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

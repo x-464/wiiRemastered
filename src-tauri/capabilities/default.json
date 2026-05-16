@@ -10,6 +10,17 @@
     "dialog:allow-open",
     "fs:allow-read",
     "fs:allow-read-dir",
-    "fs:read-all"
+    "fs:read-all",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        {
+          "path": "$APPDATA/generated_pngs"
+        },
+        {
+          "path": "$APPDATA/generated_pngs/**"
+        }
+      ]
+    }
   ]
 }
