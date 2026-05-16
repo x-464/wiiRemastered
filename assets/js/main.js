@@ -213,30 +213,76 @@ async function getTitle(id) {
     return title;
 }
 
+// function attachListenersForTitles() {
+//     const gameElements = document.querySelectorAll(".precisePath");
+//     const topWrapper = document.querySelector(".topWrapper");
+//     const gameTitleWrapper = document.querySelector(".gameTitleWrapper");
+//     const gameTitle = document.querySelector(".gameTitle");
+
+//     const gameGrids = [gameGridP1, gameGridP2, gameGridP3];
+
+//     for (let i = 0; i < amountOfGames; i++){
+//         gameElements[i].addEventListener("mouseenter", () => {
+//             const gameRect = gameElements[i].getBoundingClientRect();
+//             const wrapperRect = topWrapper.getBoundingClientRect();
+
+//             const currentGameX = (gameRect.left - wrapperRect.left) + (gameRect.width / 2);
+//             const currentGameY = gameRect.bottom - wrapperRect.top;
+
+//             gameTitle.innerHTML = `${games[i].title}`;
+//             gameTitleWrapper.style.display = "flex";
+
+//             gameTitleWrapper.style.top = `${currentGameY + 10}px`;
+//             gameTitleWrapper.style.left = `${currentGameX}px`;
+
+//             const x = gameRect.left - wrapperRect.left + gameRect.width / 2;
+//             const y = gameRect.top - wrapperRect.top + gameRect.height + 10;
+
+//             gameTitleWrapper.style.display = "flex";
+//             gameTitleWrapper.style.left = "0px";
+//             gameTitleWrapper.style.top = "0px";
+//             gameTitleWrapper.style.transform = `translate(${x}px, ${y}px) translateX(-50%)`;
+
+//             const titleRect = gameTitleWrapper.getBoundingClientRect();
+//             let correctedX = x;
+
+//             if (titleRect.left < wrapperRect.left) {
+//                 correctedX += wrapperRect.left - titleRect.left;
+//             }
+//             if (titleRect.right > wrapperRect.right) {
+//                 correctedX -= titleRect.right - wrapperRect.right;
+//             }
+
+//             console.log(correctedX);
+//             gameTitleWrapper.style.transform = `translate(${correctedX}px, ${y}px) translateX(-50%)`;
+//         })
+//         gameElements[i].addEventListener("mouseleave", () => {
+//             gameTitleWrapper.style.display = "none";
+//         })
+//     }
+// }
+
 function attachListenersForTitles() {
     const gameElements = document.querySelectorAll(".precisePath");
-    const gameGrid = document.querySelector(".gameGrid.P1");
+    const gameStroke = document.querySelectorAll(".gameStroke");
     const topWrapper = document.querySelector(".topWrapper");
     const gameTitleWrapper = document.querySelector(".gameTitleWrapper");
     const gameTitle = document.querySelector(".gameTitle");
 
-    for (let i = 0; i < amountOfGames; i++){
+    for (let i = 0; i < amountOfGames; i++) {
         gameElements[i].addEventListener("mouseenter", () => {
-            const gameRect = gameElements[i].getBoundingClientRect();
+            const gameCard = gameElements[i].closest(".game");
+            const currentGrid = gameCard.closest(".gameGrid");
+
+            // const gameRect = gameElements[i].getBoundingClientRect();
+            const gameRect = gameStroke[i].getBoundingClientRect();
             const wrapperRect = topWrapper.getBoundingClientRect();
-
-            const currentGameX = (gameRect.left - wrapperRect.left) + (gameRect.width / 2);
-            const currentGameY = gameRect.bottom - wrapperRect.top;
-
-            gameTitle.innerHTML = `${games[i].title}`;
-            gameTitleWrapper.style.display = "flex";
-
-            gameTitleWrapper.style.top = `${currentGameY + 10}px`;
-            gameTitleWrapper.style.left = `${currentGameX}px`;
+            const gridRect = currentGrid.getBoundingClientRect();
 
             const x = gameRect.left - wrapperRect.left + gameRect.width / 2;
             const y = gameRect.top - wrapperRect.top + gameRect.height + 10;
 
+            gameTitle.innerHTML = games[i].title;
             gameTitleWrapper.style.display = "flex";
             gameTitleWrapper.style.left = "0px";
             gameTitleWrapper.style.top = "0px";
@@ -245,18 +291,21 @@ function attachListenersForTitles() {
             const titleRect = gameTitleWrapper.getBoundingClientRect();
             let correctedX = x;
 
-            if (titleRect.left < wrapperRect.left) {
-                correctedX += wrapperRect.left - titleRect.left;
-            }
-            if (titleRect.right > wrapperRect.right) {
-                correctedX -= titleRect.right - wrapperRect.right;
+            if (titleRect.left < gridRect.left) {
+                correctedX += gridRect.left - titleRect.left;
             }
 
-            gameTitleWrapper.style.transform = `translate(${correctedX}px, ${y}px) translateX(-50%)`;
-        })
+            if (titleRect.right > gridRect.right) {
+                correctedX -= titleRect.right - gridRect.right;
+            }
+
+            gameTitleWrapper.style.transform =
+                `translate(${correctedX}px, ${y}px) translateX(-50%)`;
+        });
+
         gameElements[i].addEventListener("mouseleave", () => {
             gameTitleWrapper.style.display = "none";
-        })
+        });
     }
 }
 
