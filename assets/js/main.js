@@ -278,7 +278,7 @@ function attachListenersForTitles() {
             const gridRect = currentGrid.getBoundingClientRect();
 
             const x = gameRect.left - wrapperRect.left + gameRect.width / 2;
-            const y = gameRect.top - wrapperRect.top + gameRect.height + 10;
+            const y = gameRect.top - wrapperRect.top + gameRect.height - 7;
 
             gameTitle.textContent = games[i].title;
             gameTitleWrapper.style.display = "flex";
