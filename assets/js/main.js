@@ -9,7 +9,6 @@ import { LazyStore } from "@tauri-apps/plugin-store";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 let games = [];
-let amountOfGames = 0;
 let curPage = 1;
 let dolphinPath = null;
 let gamesPath = null;
@@ -28,6 +27,8 @@ const gameGridP3 = document.querySelector(".gameGrid.P3");
 
 
 async function getGameInfo() {
+    games = [];
+
     const selected = await open({
         directory: true,
         multiple: false
@@ -78,7 +79,6 @@ async function getGameInfo() {
             jsonPath
         };
         games.push(game);
-        amountOfGames++;
     }
 }
 
@@ -118,11 +118,11 @@ async function makePane(pane, parentEl, gameNum) {
         const fullPngPath = await join(appDataPath, "generated_pngs", `${games[gameNum].title}/`, pane.png_candidate);
         const assetUrl = convertFileSrc(fullPngPath);
         img.setAttribute("href", assetUrl);
-        // img.setAttribute("x", `${-pane.width / 2}`);
-        // img.setAttribute("x", `${-pane.height / 2}`);
+        img.setAttribute("x", `${-pane.width / 2}`);
+        img.setAttribute("x", `${-pane.height / 2}`);
 
-        img.setAttribute("x", "0");
-        img.setAttribute("y", "0");
+        // img.setAttribute("x", "0");
+        // img.setAttribute("y", "0");
 
         img.setAttribute("width", `${pane.width}`);
         img.setAttribute("height", `${pane.height}`);
@@ -166,6 +166,7 @@ async function insertGameSVG(gameNum) {
     gameSVG.appendChild(preciseGroup);
 
     for (const pane of channelJson.root) {
+        console.log(pane);
         await makePane(pane, preciseGroup, gameNum);
     }
 
@@ -185,7 +186,7 @@ async function insertGameSVG(gameNum) {
 
 
 async function insertChannels(){
-    let remainingGames = amountOfGames;
+    let remainingGames = games.length;
     const gameGrids = [gameGridP1, gameGridP2, gameGridP3];
 
     const page1Games = Math.min(remainingGames, 12);
@@ -201,19 +202,25 @@ async function insertChannels(){
     gameGridP2.innerHTML = "";
     gameGridP3.innerHTML = "";
 
+    for (const grid of gameGrids){
+        grid.style.visibility = "hidden";
+    }
+
     for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 12; j++) {
             const gameIndex = i * 12 + j;
 
             if (j < spacesTaken[i]) {
                 gameGrids[i].appendChild(await insertGameSVG(gameIndex));
-                console.log("game");
             }
             else {
                 gameGrids[i].appendChild(await insertNullSVG(gameIndex));
-                console.log("no game");
             }
         }
+    }
+
+    for (const grid of gameGrids) {
+        grid.style.visibility = "visible";
     }
 }
 
@@ -246,7 +253,7 @@ async function attachListenersToGames() {
     const gameTitleWrapper = document.querySelector(".gameTitleWrapper");
     const gameTitle = document.querySelector(".gameTitle");
 
-    for (let i = 0; i < amountOfGames; i++) {
+    for (let i = 0; i < games.length; i++) {
         gameCards[i].addEventListener("mouseenter", () => {
             const gameCard = gameCards[i];
             const currentGrid = gameCard.closest(".gameGrid");
