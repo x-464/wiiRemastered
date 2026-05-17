@@ -7,6 +7,7 @@ mod unwrap_bnr;
 mod unwrap_bin;
 mod tpl_to_png;
 mod brlyt_to_json;
+mod open_game;
 
 pub fn run() {
   tauri::Builder::default()
@@ -22,6 +23,7 @@ pub fn run() {
     })
     .plugin(tauri_plugin_dialog::init())
     .plugin(tauri_plugin_fs::init())
+    .plugin(tauri_plugin_store::Builder::default().build())
     .invoke_handler(tauri::generate_handler![
       get_game_metadata::get_id, 
       get_title_from_id::get_title_from_id,
@@ -29,7 +31,8 @@ pub fn run() {
       unwrap_bnr::unwrap_bnr,
       unwrap_bin::unwrap_bin,
       tpl_to_png::tpl_to_png,
-      brlyt_to_json::convert_brlyt
+      brlyt_to_json::convert_brlyt,
+      open_game::open_game
       ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

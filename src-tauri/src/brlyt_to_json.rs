@@ -195,39 +195,6 @@ fn read_u8x4(data: &[u8], off: usize) -> Option<[u8; 4]> {
     Some([data[off], data[off + 1], data[off + 2], data[off + 3]])
 }
 
-fn read_u32_be_at(data: &[u8], off: usize) -> Option<u32> {
-    if off + 4 > data.len() {
-        return None;
-    }
-    (&data[off..off + 4]).read_u32::<BigEndian>().ok()
-}
-
-fn hex_preview(data: &[u8], start: usize, len: usize) -> String {
-    if start >= data.len() {
-        return String::new();
-    }
-    let end = (start + len).min(data.len());
-    data[start..end]
-        .iter()
-        .map(|b| format!("{b:02X}"))
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
-fn ascii_preview(data: &[u8], start: usize, len: usize) -> String {
-    if start >= data.len() {
-        return String::new();
-    }
-    let end = (start + len).min(data.len());
-    data[start..end]
-        .iter()
-        .map(|b| {
-            let c = *b as char;
-            if c.is_ascii_graphic() || c == ' ' { c } else { '.' }
-        })
-        .collect()
-}
-
 fn safe_stem(path: &Path) -> String {
     path.file_stem()
         .and_then(|s| s.to_str())
@@ -600,65 +567,6 @@ fn parse_mat1(chunk_data: &[u8], textures: &[TextureEntry]) -> Vec<MaterialEntry
     out
 }
 
-fn parse_mat1_debug(chunk_data: &[u8]) -> Mat1Debug {
-    let mut cr = Cursor::new(chunk_data);
-
-    let mut debug = Mat1Debug {
-        chunk_size: chunk_data.len(),
-        ..Default::default()
-    };
-
-    if cr.seek(SeekFrom::Start(8)).is_err() {
-        return debug;
-    }
-
-    let count = match cr.read_u16::<BigEndian>() {
-        Ok(v) => v as usize,
-        Err(_) => return debug,
-    };
-    debug.count = count;
-
-    let _pad = cr.read_u16::<BigEndian>().ok();
-    debug.offsets_table_start = 0x0C;
-
-    let mut offsets = Vec::with_capacity(count);
-    for _ in 0..count {
-        if let Ok(o) = cr.read_u32::<BigEndian>() {
-            offsets.push(o as usize);
-        }
-    }
-    debug.offsets = offsets.clone();
-
-    let base_a = 0usize;
-    let base_b = 0x08 + count * 4;
-    let base_c = 0x0C + count * 4;
-
-    for (index, raw_offset) in offsets.into_iter().enumerate() {
-        let a = base_a + raw_offset;
-        let b = base_b + raw_offset;
-        let c = base_c + raw_offset;
-
-        debug.entries.push(Mat1DebugEntry {
-            index,
-            raw_offset,
-            candidate_abs_a: a,
-            candidate_abs_b: b,
-            candidate_abs_c: c,
-            preview_a_hex: hex_preview(chunk_data, a, 64),
-            preview_b_hex: hex_preview(chunk_data, b, 64),
-            preview_c_hex: hex_preview(chunk_data, c, 64),
-            ascii_a: ascii_preview(chunk_data, a, 32),
-            ascii_b: ascii_preview(chunk_data, b, 32),
-            ascii_c: ascii_preview(chunk_data, c, 32),
-            flags_a_3c: read_u32_be_at(chunk_data, a + 0x3C),
-            flags_b_3c: read_u32_be_at(chunk_data, b + 0x3C),
-            flags_c_3c: read_u32_be_at(chunk_data, c + 0x3C),
-        });
-    }
-
-    debug
-}
-
 #[tauri::command]
 pub fn convert_brlyt(app: AppHandle, brlyt_path: String, title: String) -> Result<String, String> {
     let path = PathBuf::from(&brlyt_path);
@@ -754,7 +662,6 @@ pub fn convert_brlyt(app: AppHandle, brlyt_path: String, title: String) -> Resul
     }
 
     if let Some(mat1) = mat1_chunk {
-        layout.mat1_debug = Some(parse_mat1_debug(&mat1));
         layout.materials = parse_mat1(&mat1, &layout.textures);
     }
 

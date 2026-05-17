@@ -5,7 +5,8 @@
   },
   "dependencies": {
     "@tauri-apps/plugin-dialog": "^2.7.1",
-    "@tauri-apps/plugin-fs": "^2.5.1"
+    "@tauri-apps/plugin-fs": "^2.5.1",
+    "@tauri-apps/plugin-store": "^2.4.3"
   },
   "scripts": {
     "dev": "vite",

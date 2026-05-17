@@ -5,12 +5,19 @@ import { invoke } from "@tauri-apps/api/core";
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { LazyStore } from "@tauri-apps/plugin-store";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 let games = [];
 let amountOfGames = 0;
 let curPage = 1;
+let dolphinPath = null;
+let gamesPath = null;
+
+const store = new LazyStore("settings.json");
 
 const fileDir = document.querySelector(".settingsBtnSVGLeft");
+const dolphinDir = document.querySelector(".settingsBtnSVGRight");
 const scrollTrack = document.querySelector(".scrollTrack");
 const arrowLeft = document.querySelector(".arrowWrapL");
 const arrowRight = document.querySelector(".arrowWrapR");
@@ -26,9 +33,9 @@ async function getGameInfo() {
         multiple: false
     });
     if (!selected || Array.isArray(selected)) { return; }
-    const entries = await readDir(selected);
+    gamesPath = await readDir(selected);
 
-    const isoPaths = entries
+    const isoPaths = gamesPath
         .filter(entry => entry.isFile && entry.name?.toLowerCase().endsWith('.iso'))
         .map(entry => `${selected}${selected.endsWith('\\') || selected.endsWith('/') ? '' : '/'}${entry.name}`);
 
@@ -73,22 +80,25 @@ async function getGameInfo() {
         games.push(game);
         amountOfGames++;
     }
-
-    await insertChannels();
-    attachListenersForTitles();
 }
 
 
-async function insertNullSVG() {
-    const nullSVG = await fetch("/assets/svgs/nullGame.svg");
-    const nullText = await nullSVG.text();
+async function getDolphinPath() {
+    const selected = await open({
+        multiple: false,
+        filters: [
+            {
+                name: "Executable",
+                extensions: ["exe"]
+            }
+        ]
+    });
 
-    const wrapper = document.createElement("div");
-    wrapper.className = "game";
-    wrapper.innerHTML = nullText;
+    if (!selected || Array.isArray(selected)) return;
 
-    return wrapper;
+    dolphinPath = selected;
 }
+
 
 async function makePane(pane, parentEl, gameNum) {
     const SVG_NS = "http://www.w3.org/2000/svg";
@@ -126,13 +136,26 @@ async function makePane(pane, parentEl, gameNum) {
     }
 }
 
+
+async function insertNullSVG(gameNum) {
+    const nullSVG = await fetch("/assets/svgs/nullGame.svg");
+    const nullText = await nullSVG.text();
+
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("class", `game ${gameNum}`);
+    wrapper.innerHTML = nullText;
+
+    return wrapper;
+}
+
+
 async function insertGameSVG(gameNum) {
     const res = await readTextFile(games[gameNum].jsonPath);
     let channelJson = JSON.parse(res);
     const SVG_NS = "http://www.w3.org/2000/svg";
 
     const wrapper = document.createElement("div");
-    wrapper.className = "game";
+    wrapper.setAttribute("class", `game ${gameNum}`);
 
     const gameSVG = document.createElementNS(SVG_NS, "svg");
     gameSVG.setAttribute("viewBox", "0 0 200 113");
@@ -160,6 +183,7 @@ async function insertGameSVG(gameNum) {
     return wrapper;
 }
 
+
 async function insertChannels(){
     let remainingGames = amountOfGames;
     const gameGrids = [gameGridP1, gameGridP2, gameGridP3];
@@ -183,9 +207,11 @@ async function insertChannels(){
 
             if (j < spacesTaken[i]) {
                 gameGrids[i].appendChild(await insertGameSVG(gameIndex));
+                console.log("game");
             }
             else {
-                gameGrids[i].appendChild(await insertNullSVG());
+                gameGrids[i].appendChild(await insertNullSVG(gameIndex));
+                console.log("no game");
             }
         }
     }
@@ -213,56 +239,8 @@ async function getTitle(id) {
     return title;
 }
 
-// function attachListenersForTitles() {
-//     const gameElements = document.querySelectorAll(".precisePath");
-//     const topWrapper = document.querySelector(".topWrapper");
-//     const gameTitleWrapper = document.querySelector(".gameTitleWrapper");
-//     const gameTitle = document.querySelector(".gameTitle");
 
-//     const gameGrids = [gameGridP1, gameGridP2, gameGridP3];
-
-//     for (let i = 0; i < amountOfGames; i++){
-//         gameElements[i].addEventListener("mouseenter", () => {
-//             const gameRect = gameElements[i].getBoundingClientRect();
-//             const wrapperRect = topWrapper.getBoundingClientRect();
-
-//             const currentGameX = (gameRect.left - wrapperRect.left) + (gameRect.width / 2);
-//             const currentGameY = gameRect.bottom - wrapperRect.top;
-
-//             gameTitle.innerHTML = `${games[i].title}`;
-//             gameTitleWrapper.style.display = "flex";
-
-//             gameTitleWrapper.style.top = `${currentGameY + 10}px`;
-//             gameTitleWrapper.style.left = `${currentGameX}px`;
-
-//             const x = gameRect.left - wrapperRect.left + gameRect.width / 2;
-//             const y = gameRect.top - wrapperRect.top + gameRect.height + 10;
-
-//             gameTitleWrapper.style.display = "flex";
-//             gameTitleWrapper.style.left = "0px";
-//             gameTitleWrapper.style.top = "0px";
-//             gameTitleWrapper.style.transform = `translate(${x}px, ${y}px) translateX(-50%)`;
-
-//             const titleRect = gameTitleWrapper.getBoundingClientRect();
-//             let correctedX = x;
-
-//             if (titleRect.left < wrapperRect.left) {
-//                 correctedX += wrapperRect.left - titleRect.left;
-//             }
-//             if (titleRect.right > wrapperRect.right) {
-//                 correctedX -= titleRect.right - wrapperRect.right;
-//             }
-
-//             console.log(correctedX);
-//             gameTitleWrapper.style.transform = `translate(${correctedX}px, ${y}px) translateX(-50%)`;
-//         })
-//         gameElements[i].addEventListener("mouseleave", () => {
-//             gameTitleWrapper.style.display = "none";
-//         })
-//     }
-// }
-
-function attachListenersForTitles() {
+async function attachListenersToGames() {
     const gameCards = document.querySelectorAll(".game");
     const topWrapper = document.querySelector(".topWrapper");
     const gameTitleWrapper = document.querySelector(".gameTitleWrapper");
@@ -305,8 +283,13 @@ function attachListenersForTitles() {
         gameCards[i].addEventListener("mouseleave", () => {
             gameTitleWrapper.style.display = "none";
         });
+
+        gameCards[i].addEventListener("click", async () => {
+            const gameReturn = await invoke("open_game", { gamePath: games[i].isoPath, dolphinPath: String(dolphinPath) });
+        });
     }
 }
+
 
 function scrollToPage(container, page) {
     const target =
@@ -320,6 +303,7 @@ function scrollToPage(container, page) {
     });
 }
 
+
 function arrowShow() {
     if (curPage == 1) {
         arrowLeft.style.visibility = "hidden";
@@ -332,6 +316,7 @@ function arrowShow() {
         arrowRight.style.visibility = "visible";
     }
 }
+
 
 function clickAnimation(){
     const arrowMinus = document.querySelector(".arrowMinus");
@@ -352,58 +337,45 @@ function clickAnimation(){
     })
 }
 
+async function onStart() {
+    dolphinPath = await store.get("dolphinPath");
+    gamesPath = await store.get("gamesPath");
+    games = await store.get("games");
+    if (!Array.isArray(games)) games = [];
+    console.log(games);
+
+    await insertChannels();
+}
+
+async function onClose() {
+    const appWindow = getCurrentWindow();
+
+    await appWindow.onCloseRequested(async (event) => {
+        await store.set("dolphinPath", dolphinPath);
+        await store.set("gamesPath", gamesPath);
+        await store.set("games", games);
+        await store.save();
+    });
+}
 
 async function main(){
+
+    await onStart();
+
     const pages = [gameGridP1, gameGridP2, gameGridP3];
 
     arrowShow();
-    await insertChannels();
     clickAnimation();
 
     fileDir.addEventListener("click", async () => {
         await getGameInfo();
-
-
-        const devices = await navigator.hid.requestDevice({ filters: [] });
-
-        for (const device of devices) {
-            await device.open();
-
-            console.log("DEVICE", {
-                productName: device.productName,
-                vendorId: device.vendorId,
-                productId: device.productId,
-                opened: device.opened,
-                collections: device.collections.map(c => ({
-                    usagePage: c.usagePage,
-                    usage: c.usage,
-                    type: c.type,
-                    inputReports: c.inputReports.map(r => ({
-                        reportId: r.reportId,
-                        items: r.items.length
-                    })),
-                    outputReports: c.outputReports.map(r => ({
-                        reportId: r.reportId,
-                        items: r.items.length
-                    })),
-                    featureReports: c.featureReports.map(r => ({
-                        reportId: r.reportId,
-                        items: r.items.length
-                    }))
-                }))
-            });
-
-            device.oninputreport = (event) => {
-                console.log(
-                    "INPUT",
-                    device.productName,
-                    "reportId:",
-                    event.reportId,
-                    [...new Uint8Array(event.data.buffer)]
-                );
-            };
-        }
+        await insertChannels();
+        await attachListenersToGames();
     });
+
+    dolphinDir.addEventListener("click", async () => {
+        await getDolphinPath();
+    })
 
     scrollTrack.addEventListener("wheel", (e) => {
         e.preventDefault();
@@ -424,5 +396,10 @@ async function main(){
             arrowShow();
         }
     });
+
+    await onClose();
 }
-main();
+
+window.addEventListener("DOMContentLoaded", () => {
+    main();
+});

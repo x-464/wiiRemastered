@@ -11,6 +11,8 @@
     "fs:allow-read",
     "fs:allow-read-dir",
     "fs:read-all",
+    "store:default",
+    "core:window:allow-destroy",
     {
       "identifier": "fs:scope",
       "allow": [
