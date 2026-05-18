@@ -46,7 +46,7 @@ async function getGameInfo() {
 
         const bnrPath = await invoke("unwrap_iso", { isoPath: isoPath });
         const binPaths = await invoke("unwrap_bnr", { bnrPath });
-
+        
         let pngPaths = [];
         let pngPath = null;
         let jsonPath = null;
@@ -54,21 +54,21 @@ async function getGameInfo() {
         for (const binPath of binPaths) {
             if (binPath.bin_path.toLowerCase().endsWith("banner.bin") || binPath.bin_path.toLowerCase().endsWith("icon.bin")) {
                 const imgInfoPaths = await invoke("unwrap_bin", { binPath: binPath.bin_path });
-
+                console.log(binPath.bin_path);
                 for (const imgInfoPath of imgInfoPaths) {
                     if (imgInfoPath.source_path.toLowerCase().endsWith(".tpl") || imgInfoPath.source_path.toLowerCase().endsWith(".tex0")){
                         pngPath = await invoke("tpl_to_png", { tplPath: imgInfoPath.source_path, title: title });
                     }
-
+                    
                     if (imgInfoPath.source_path.toLowerCase().endsWith("icon.brlyt")) {
                         jsonPath = await invoke("convert_brlyt", { brlytPath: imgInfoPath.source_path, title: title });
                     }
-                    
                     pngPaths.push(pngPath);
                 }
-            }            
+                
+            }
         }
-
+        
         const game = {
             id,
             title,
