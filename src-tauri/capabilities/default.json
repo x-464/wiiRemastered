@@ -13,6 +13,9 @@
     "fs:read-all",
     "store:default",
     "core:window:allow-destroy",
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-is-fullscreen",
+    "core:window:allow-minimize",
     {
       "identifier": "fs:scope",
       "allow": [

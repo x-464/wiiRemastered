@@ -1,12 +1,13 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { readDir } from "@tauri-apps/plugin-fs";
 import { readFile } from "@tauri-apps/plugin-fs";
-import { invoke } from "@tauri-apps/api/core";
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { LazyStore } from "@tauri-apps/plugin-store";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 
 let games = [];
 let curPage = 1;
@@ -29,10 +30,7 @@ const gameGridP3 = document.querySelector(".gameGrid.P3");
 async function getGameInfo() {
     games = [];
 
-    const selected = await open({
-        directory: true,
-        multiple: false
-    });
+    const selected = await open({ directory: true, multiple: false });
     if (!selected || Array.isArray(selected)) { return; }
     gamesPath = await readDir(selected);
 
@@ -42,11 +40,12 @@ async function getGameInfo() {
 
     for (const isoPath of isoPaths) {
         const id = await invoke('get_id', { path: isoPath });
-        let title = await getTitle(id);
+        const title = await getTitle(id);
+        const folderKey = safeFolderKey(title, id);
 
-        const bnrPath = await invoke("unwrap_iso", { isoPath: isoPath });
+        const bnrPath = await invoke("unwrap_iso", { isoPath });
         const binPaths = await invoke("unwrap_bnr", { bnrPath });
-        
+
         let pngPaths = [];
         let pngPath = null;
         let jsonPath = null;
@@ -54,34 +53,22 @@ async function getGameInfo() {
         for (const binPath of binPaths) {
             if (binPath.bin_path.toLowerCase().endsWith("banner.bin") || binPath.bin_path.toLowerCase().endsWith("icon.bin")) {
                 const imgInfoPaths = await invoke("unwrap_bin", { binPath: binPath.bin_path });
-                console.log(binPath.bin_path);
                 for (const imgInfoPath of imgInfoPaths) {
-                    if (imgInfoPath.source_path.toLowerCase().endsWith(".tpl") || imgInfoPath.source_path.toLowerCase().endsWith(".tex0")){
-                        pngPath = await invoke("tpl_to_png", { tplPath: imgInfoPath.source_path, title: title });
+                    if (imgInfoPath.source_path.toLowerCase().endsWith(".tpl") || imgInfoPath.source_path.toLowerCase().endsWith(".tex0")) {
+                        pngPath = await invoke("tpl_to_png", { tplPath: imgInfoPath.source_path, title: folderKey });
                     }
-                    
                     if (imgInfoPath.source_path.toLowerCase().endsWith("icon.brlyt")) {
-                        jsonPath = await invoke("convert_brlyt", { brlytPath: imgInfoPath.source_path, title: title });
+                        jsonPath = await invoke("convert_brlyt", { brlytPath: imgInfoPath.source_path, title: folderKey });
                     }
                     pngPaths.push(pngPath);
                 }
-                
             }
         }
-        
-        const game = {
-            id,
-            title,
-            isoPath,
-            bnrPath,
-            binPaths,
-            pngPaths,
-            jsonPath
-        };
+
+        const game = { id, title, folderKey, isoPath, bnrPath, binPaths, pngPaths, jsonPath };
         games.push(game);
     }
 }
-
 
 async function getDolphinPath() {
     const selected = await open({
@@ -99,7 +86,6 @@ async function getDolphinPath() {
     dolphinPath = selected;
 }
 
-
 async function makePane(pane, parentEl, gameNum) {
     const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -115,18 +101,15 @@ async function makePane(pane, parentEl, gameNum) {
         const img = document.createElementNS(SVG_NS, "image");
         
         const appDataPath = await appDataDir();
-        const fullPngPath = await join(appDataPath, "generated_pngs", `${games[gameNum].title}/`, pane.png_candidate);
+        const fullPngPath = await join(appDataPath, "generated_pngs", `${games[gameNum].folderKey}/`, pane.png_candidate);
         const assetUrl = convertFileSrc(fullPngPath);
         img.setAttribute("href", assetUrl);
         img.setAttribute("x", `${-pane.width / 2}`);
-        img.setAttribute("x", `${-pane.height / 2}`);
-
-        // img.setAttribute("x", "0");
-        // img.setAttribute("y", "0");
-
+        img.setAttribute("y", `${-pane.height / 2}`);
         img.setAttribute("width", `${pane.width}`);
         img.setAttribute("height", `${pane.height}`);
         img.setAttribute("preserveAspectRatio", "none");
+        img.setAttribute("transform", "scale(1,-1)");
 
         group.appendChild(img);
     }
@@ -135,7 +118,6 @@ async function makePane(pane, parentEl, gameNum) {
         await makePane(child, group, gameNum);
     }
 }
-
 
 async function insertNullSVG(gameNum) {
     const nullSVG = await fetch("/assets/svgs/nullGame.svg");
@@ -148,10 +130,18 @@ async function insertNullSVG(gameNum) {
     return wrapper;
 }
 
+function findBackgroundPic(panes) {
+    for (const p of panes) {
+        if (p.type === "pic1" && p.png_candidate) return p;
+        const found = findBackgroundPic(p.children || []);
+        if (found) return found;
+    }
+    return null;
+}
 
 async function insertGameSVG(gameNum) {
     const res = await readTextFile(games[gameNum].jsonPath);
-    let channelJson = JSON.parse(res);
+    const channelJson = JSON.parse(res);
     const SVG_NS = "http://www.w3.org/2000/svg";
 
     const wrapper = document.createElement("div");
@@ -161,12 +151,25 @@ async function insertGameSVG(gameNum) {
     gameSVG.setAttribute("viewBox", "0 0 200 113");
     gameSVG.setAttribute("class", "gamePath");
 
+    // nested SVG for the channel layout, inset to sit inside the rounded frame
+    const bg = findBackgroundPic(channelJson.root);
+    const vw = bg ? bg.width * (bg.scale_x || 1) : (channelJson.width || 200);
+    const vh = bg ? bg.height * (bg.scale_y || 1) : (channelJson.height || 113);
+
+    const layoutSvg = document.createElementNS(SVG_NS, "svg");
+    layoutSvg.setAttribute("x", "5");
+    layoutSvg.setAttribute("y", "6");
+    layoutSvg.setAttribute("width", "190");
+    layoutSvg.setAttribute("height", "101");
+    layoutSvg.setAttribute("viewBox", `${-vw / 2} ${-vh / 2} ${vw} ${vh}`);
+    layoutSvg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
     const preciseGroup = document.createElementNS(SVG_NS, "g");
-    preciseGroup.setAttribute("class", "precisePath");
-    gameSVG.appendChild(preciseGroup);
+    preciseGroup.setAttribute("transform", "scale(1,-1)"); // BRLYT is Y-up
+    layoutSvg.appendChild(preciseGroup);
+    gameSVG.appendChild(layoutSvg);
 
     for (const pane of channelJson.root) {
-        console.log(pane);
         await makePane(pane, preciseGroup, gameNum);
     }
 
@@ -178,12 +181,10 @@ async function insertGameSVG(gameNum) {
     border.setAttribute("fill", "none");
     border.setAttribute("stroke", "#bbbbbb");
     border.setAttribute("stroke-width", "2");
-
     gameSVG.appendChild(border);
 
     return wrapper;
 }
-
 
 async function insertChannels(){
     let remainingGames = games.length;
@@ -224,7 +225,6 @@ async function insertChannels(){
     }
 }
 
-
 async function getTitle(id) {
     let title = "";
 
@@ -245,7 +245,6 @@ async function getTitle(id) {
 
     return title;
 }
-
 
 async function attachListenersToGames() {
     const gameCards = document.querySelectorAll(".game");
@@ -292,11 +291,12 @@ async function attachListenersToGames() {
         });
 
         gameCards[i].addEventListener("click", async () => {
-            const gameReturn = await invoke("open_game", { gamePath: games[i].isoPath, dolphinPath: String(dolphinPath) });
+            console.log("launching with dolphin:", dolphinPath, "iso:", games[i].isoPath);
+            await invoke("open_game", { gamePath: games[i].isoPath, dolphinPath: String(dolphinPath) });
+            stopWiimote();
         });
     }
 }
-
 
 function scrollToPage(container, page) {
     const target =
@@ -310,7 +310,6 @@ function scrollToPage(container, page) {
     });
 }
 
-
 function arrowShow() {
     if (curPage == 1) {
         arrowLeft.style.visibility = "hidden";
@@ -323,7 +322,6 @@ function arrowShow() {
         arrowRight.style.visibility = "visible";
     }
 }
-
 
 function clickAnimation(){
     const arrowMinus = document.querySelector(".arrowMinus");
@@ -344,29 +342,113 @@ function clickAnimation(){
     })
 }
 
+function safeFolderKey(title, id) {
+    const cleaned = (title || "")
+        .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+        .replace(/[. ]+$/g, "")
+        .trim();
+    return cleaned || id;
+}
+
+async function startWiimote() {
+    try { await invoke("start_wiimote"); }
+    catch (err) { console.error("start_wiimote failed:", err); }
+}
+
+async function initWiimote() {
+    const wii = document.querySelector(".wiiGrid");
+    const cursorP1 = document.querySelector(".cursorP1");
+
+    let latest = null;
+
+    function onAPressed(nx, ny) {
+        const wii = document.querySelector(".wiiGrid").getBoundingClientRect();
+
+        const wiiX = wii.left + nx * wii.width;
+        const wiiY = wii.top + ny * wii.height;
+
+        const target = document.elementFromPoint(wiiX, wiiY);
+
+        console.log(wiiX, wiiY);
+        console.log(target);
+        target.click();
+    }
+
+    await listen("wiimote-update", (e) => { latest = e.payload; });
+
+    await listen("wiimote-button", (e) => {
+        const { button, pressed, x, y, visible } = e.payload;
+        if (button === "a" && pressed) onAPressed(x, y);
+    });
+
+    await listen("wiimote-error", (e) => console.error("Rust wiimote error:", e.payload));
+    await listen("wiimote-connected", (e) => console.log(`Player ${e.payload} connected`));
+    await listen("wiimote-disconnected", (e) => {
+        console.log(`Player ${e.payload} disconnected`);
+        cursorP1.style.opacity = "0";
+        latest = null;
+    });
+
+    await listen("game-error", (e) => {
+        console.error("open_game failed:", e.payload);
+        startWiimote();
+    });
+
+    await listen("game-closed", () => { startWiimote(); });
+
+    function renderCursor() {
+        if (latest) {
+            const rect = wii.getBoundingClientRect();
+            const { x, y, visible, rotation } = latest;
+            if (visible) {
+                cursorP1.style.opacity = "1";
+                cursorP1.style.transform =
+                    `translate(${x * rect.width}px, ${y * rect.height}px) translate(-50%, -50%) rotate(${rotation}deg)`;
+            } else {
+                cursorP1.style.opacity = "0";
+            }
+        }
+        requestAnimationFrame(renderCursor);
+    }
+    requestAnimationFrame(renderCursor);
+}
+
+async function stopWiimote(){
+    await invoke("stop_wiimote");
+}
+
 async function onStart() {
-    dolphinPath = await store.get("dolphinPath");
-    gamesPath = await store.get("gamesPath");
-    games = await store.get("games");
+    dolphinPath = await store.get("dolphinPath") ?? null;
+    gamesPath = await store.get("gamesPath") ?? null;
+    games = await store.get("games") ?? null;
     if (!Array.isArray(games)) games = [];
     console.log(games);
 
     await insertChannels();
+    await attachListenersToGames();
+    await initWiimote();
+    await startWiimote();
 }
 
 async function onClose() {
     const appWindow = getCurrentWindow();
 
     await appWindow.onCloseRequested(async (event) => {
-        await store.set("dolphinPath", dolphinPath);
-        await store.set("gamesPath", gamesPath);
-        await store.set("games", games);
-        await store.save();
+        event.preventDefault();
+        try {
+            stopWiimote();
+            await store.set("dolphinPath", dolphinPath ?? null);
+            await store.set("gamesPath", gamesPath ?? null);
+            await store.set("games", Array.isArray(games) ? games : []);
+            await store.save();
+        } catch (err) {
+            console.error("Failed to save settings on close:", err);
+        }
+        await appWindow.destroy();
     });
 }
 
 async function main(){
-
     await onStart();
 
     const pages = [gameGridP1, gameGridP2, gameGridP3];
@@ -401,6 +483,19 @@ async function main(){
             curPage++;
             scrollToPage(scrollTrack, pages[curPage - 1]);
             arrowShow();
+        }
+    });
+
+    window.addEventListener("keydown", async (e) => {
+        const w = getCurrentWindow();
+
+        if (e.key === "F11") {
+            e.preventDefault();
+            await w.setFullscreen(!(await w.isFullscreen()));
+        }
+
+        if (e.key === "Escape" && await w.isFullscreen()) {
+            await w.setFullscreen(false);
         }
     });
 

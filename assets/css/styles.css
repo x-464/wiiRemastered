@@ -20,6 +20,10 @@ body{
     container-type: size;
 }
 
+.scrollTrack svg, .arrowWrap svg{
+    pointer-events: none;
+}
+
 .screen{
     position: relative;
     min-height: 100dvh;
@@ -60,6 +64,21 @@ body{
     height: 100%;
     width: 100%;
     backdrop-filter: blur(0.5px);
+}
+
+.cursorP1{
+    width: 7.5cqh;
+    height: 7.5cqh;
+    position: absolute;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.25s;
+    pointer-events: none;
+
+    background-image: url("/assets/svgs/cursors/cursorP1.svg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
 }
 
 .topWrapper {

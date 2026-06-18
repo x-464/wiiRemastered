@@ -1,14 +1,25 @@
 use std::process::Command;
+use tauri::{AppHandle, Emitter};
 
 #[tauri::command]
-pub fn open_game(game_path: String, dolphin_path: String) -> Result<(), String> {
-    let mut cmd = if cfg!(target_os = "macos") {
-        Command::new("/Applications/Dolphin.app/Contents/MacOS/Dolphin")
-    } else {
-        Command::new(dolphin_path)
-    };
+pub fn open_game(app: AppHandle, game_path: String, dolphin_path: String) -> Result<(), String> {
+    std::thread::spawn(move || {
+        let mut child = match Command::new(dolphin_path)
+            .arg("-b")
+            .arg("-e")
+            .arg(game_path)
+            .spawn()
+        {
+            Ok(child) => child,
+            Err(e) => {
+                let _ = app.emit("game-error", e.to_string());
+                return;
+            }
+        };
 
-    cmd.arg("-b").arg("-e").arg(game_path);
-    cmd.spawn().map_err(|e| e.to_string())?;
+        let _ = child.wait();
+        let _ = app.emit("game-closed", ());
+    });
+
     Ok(())
 }

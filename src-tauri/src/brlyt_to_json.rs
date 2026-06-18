@@ -567,6 +567,14 @@ fn parse_mat1(chunk_data: &[u8], textures: &[TextureEntry]) -> Vec<MaterialEntry
     out
 }
 
+fn attach_pane(roots: &mut Vec<Pane>, open_parents: &mut Vec<Pane>, pane: Pane) {
+    if let Some(parent) = open_parents.last_mut() {
+        parent.children.push(pane);
+    } else {
+        roots.push(pane);
+    }
+}
+
 #[tauri::command]
 pub fn convert_brlyt(app: AppHandle, brlyt_path: String, title: String) -> Result<String, String> {
     let path = PathBuf::from(&brlyt_path);
@@ -586,9 +594,11 @@ pub fn convert_brlyt(app: AppHandle, brlyt_path: String, title: String) -> Resul
 
     let mut layout = Layout::default();
     let mut current_pos = header_size as usize;
-    let mut stack: Vec<Pane> = Vec::new();
-    let mut final_roots: Vec<Pane> = Vec::new();
     let mut mat1_chunk: Option<Vec<u8>> = None;
+
+    let mut roots: Vec<Pane> = Vec::new();
+    let mut open_parents: Vec<Pane> = Vec::new();
+    let mut last_pane: Option<Pane> = None;
 
     info!("BRLYT header_size={}, num_chunks={}", header_size, num_chunks);
 
@@ -627,24 +637,35 @@ pub fn convert_brlyt(app: AppHandle, brlyt_path: String, title: String) -> Resul
             b"mat1" => {
                 mat1_chunk = Some(chunk_data.to_vec());
             }
-            b"pan1" | b"txt1" | b"wnd1" => {
+            b"pan1" | b"txt1" | b"wnd1" | b"bnd1" => {
                 let mut tag_arr = [0u8; 4];
                 tag_arr.copy_from_slice(tag);
                 let pane = parse_pane_base(&mut cr, &tag_arr)?;
-                stack.push(pane);
+                if let Some(prev) = last_pane.take() {
+                    attach_pane(&mut roots, &mut open_parents, prev);
+                }
+                last_pane = Some(pane);
             }
             b"pic1" => {
                 let pane = parse_pic1(chunk_data)?;
-                stack.push(pane);
+                if let Some(prev) = last_pane.take() {
+                    attach_pane(&mut roots, &mut open_parents, prev);
+                }
+                last_pane = Some(pane);
             }
-            b"pas1" => {}
+            b"pas1" => {
+                // the pane we just read becomes the active parent
+                if let Some(p) = last_pane.take() {
+                    open_parents.push(p);
+                }
+            }
             b"pae1" => {
-                if let Some(child) = stack.pop() {
-                    if let Some(parent) = stack.last_mut() {
-                        parent.children.push(child);
-                    } else {
-                        final_roots.push(child);
-                    }
+                // commit any pending leaf, then close the current parent
+                if let Some(prev) = last_pane.take() {
+                    attach_pane(&mut roots, &mut open_parents, prev);
+                }
+                if let Some(closed) = open_parents.pop() {
+                    attach_pane(&mut roots, &mut open_parents, closed);
                 }
             }
             _ => {}
@@ -653,19 +674,18 @@ pub fn convert_brlyt(app: AppHandle, brlyt_path: String, title: String) -> Resul
         current_pos += size;
     }
 
-    while let Some(p) = stack.pop() {
-        if let Some(parent) = stack.last_mut() {
-            parent.children.push(p);
-        } else {
-            final_roots.push(p);
-        }
+    if let Some(prev) = last_pane.take() {
+        attach_pane(&mut roots, &mut open_parents, prev);
+    }
+    while let Some(closed) = open_parents.pop() {
+        attach_pane(&mut roots, &mut open_parents, closed);
     }
 
     if let Some(mat1) = mat1_chunk {
         layout.materials = parse_mat1(&mat1, &layout.textures);
     }
 
-    layout.root = final_roots;
+    layout.root = roots;
     bind_materials_to_pictures(&mut layout.root, &layout.materials, &mut layout.pictures);
 
     let out_root = json_output_root(&app, &title)?;
