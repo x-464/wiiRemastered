@@ -1,3 +1,4 @@
+mod brlan_to_json;
 mod brlyt_to_json;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 mod get_game_metadata;
@@ -32,6 +33,7 @@ pub fn run() {
             unwrap_bin::unwrap_bin,
             tpl_to_png::tpl_to_png,
             brlyt_to_json::convert_brlyt,
+            brlan_to_json::convert_brlan,
             open_game::open_game,
             make_cursor::start_wiimote,
             make_cursor::stop_wiimote

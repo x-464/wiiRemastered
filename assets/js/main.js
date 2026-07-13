@@ -49,6 +49,7 @@ async function getGameInfo() {
         let pngPaths = [];
         let pngPath = null;
         let jsonPath = null;
+        let animPath = null;
 
         for (const binPath of binPaths) {
             if (binPath.bin_path.toLowerCase().endsWith("banner.bin") || binPath.bin_path.toLowerCase().endsWith("icon.bin")) {
@@ -60,12 +61,15 @@ async function getGameInfo() {
                     if (imgInfoPath.source_path.toLowerCase().endsWith("icon.brlyt")) {
                         jsonPath = await invoke("convert_brlyt", { brlytPath: imgInfoPath.source_path, title: folderKey });
                     }
+                    if (imgInfoPath.source_path.toLowerCase().endsWith("icon.brlan")) {
+                        animPath = await invoke("convert_brlan", { brlanPath: imgInfoPath.source_path, title: folderKey });
+                    }
                     pngPaths.push(pngPath);
                 }
             }
         }
 
-        const game = { id, title, folderKey, isoPath, bnrPath, binPaths, pngPaths, jsonPath };
+        const game = { id, title, folderKey, isoPath, bnrPath, binPaths, pngPaths, jsonPath, animPath };
         games.push(game);
     }
 }
@@ -86,20 +90,84 @@ async function getDolphinPath() {
     dolphinPath = selected;
 }
 
-async function makePane(pane, parentEl, gameNum) {
+// ---- per-vertex color (GX Gouraud) support ----
+// GX bilinearly interpolates the 4 corner colors across the quad and multiplies
+// them with the texture. All banner icons observed only vary corner ALPHA (RGB
+// stays white), which maps exactly onto an SVG luminance mask built from a
+// small bilinearly-filled bitmap.
+
+const vtxMaskCache = new Map();
+let warnedVtxRGB = false;
+
+function vertexAlphaMaskURI(alphas) {
+    const key = alphas.join("|");
+    const cached = vtxMaskCache.get(key);
+    if (cached) return cached;
+
+    const N = 64;
+    const [tlA, trA, blA, brA] = alphas;
+    const canvas = document.createElement("canvas");
+    canvas.width = N;
+    canvas.height = N;
+    const ctx = canvas.getContext("2d");
+    const pixels = ctx.createImageData(N, N);
+
+    for (let y = 0; y < N; y++) {
+        const v = y / (N - 1);
+        for (let x = 0; x < N; x++) {
+            const u = x / (N - 1);
+            const a = (tlA * (1 - u) + trA * u) * (1 - v)
+                    + (blA * (1 - u) + brA * u) * v;
+            const o = (y * N + x) * 4;
+            pixels.data[o] = 255;
+            pixels.data[o + 1] = 255;
+            pixels.data[o + 2] = 255;
+            pixels.data[o + 3] = Math.round(a);
+        }
+    }
+
+    ctx.putImageData(pixels, 0, 0);
+    const uri = canvas.toDataURL("image/png");
+    vtxMaskCache.set(key, uri);
+    return uri;
+}
+
+function vertexCornerInfo(pane) {
+    const tl = pane.top_left_color;
+    const tr = pane.top_right_color;
+    const bl = pane.bottom_left_color;
+    const br = pane.bottom_right_color;
+    if (!tl || !tr || !bl || !br) return { mul: 1, maskURI: null };
+
+    if (!warnedVtxRGB && [tl, tr, bl, br].some(c => c[0] !== 255 || c[1] !== 255 || c[2] !== 255)) {
+        warnedVtxRGB = true;
+        console.warn("vertex colors with non-white RGB found; only their alpha is rendered");
+    }
+
+    const alphas = [tl[3], tr[3], bl[3], br[3]];
+    if (alphas.every(a => a === alphas[0])) {
+        return { mul: alphas[0] / 255, maskURI: null };
+    }
+    return { mul: 1, maskURI: vertexAlphaMaskURI(alphas) };
+}
+
+async function makePane(pane, parentEl, gameNum, reg) {
     const SVG_NS = "http://www.w3.org/2000/svg";
 
-    if (!pane.visible) return;
+    const vtx = vertexCornerInfo(pane);
 
     const group = document.createElementNS(SVG_NS, "g");
     group.setAttribute("transform", `translate(${pane.x}, ${pane.y}) scale(${pane.scale_x}, ${pane.scale_y})`);
-    group.setAttribute("opacity", `${pane.alpha / 255}`);
+    group.setAttribute("opacity", `${(pane.alpha / 255) * vtx.mul}`);
+    // hidden panes still get built so RLVI (visibility) animation can reveal them
+    if (!pane.visible) group.style.display = "none";
 
     parentEl.appendChild(group);
 
+    let img = null;
     if (pane.type === "pic1" && pane.png_candidate){
-        const img = document.createElementNS(SVG_NS, "image");
-        
+        img = document.createElementNS(SVG_NS, "image");
+
         const appDataPath = await appDataDir();
         const fullPngPath = await join(appDataPath, "generated_pngs", `${games[gameNum].folderKey}/`, pane.png_candidate);
         const assetUrl = convertFileSrc(fullPngPath);
@@ -111,12 +179,209 @@ async function makePane(pane, parentEl, gameNum) {
         img.setAttribute("preserveAspectRatio", "none");
         img.setAttribute("transform", "scale(1,-1)");
 
+        if (vtx.maskURI && reg?.defs) {
+            const maskId = `vtx_${reg.uid}_${pane.name.replace(/[^\w-]/g, "_")}`;
+            const mask = document.createElementNS(SVG_NS, "mask");
+            mask.setAttribute("id", maskId);
+            mask.setAttribute("maskUnits", "userSpaceOnUse");
+            mask.setAttribute("x", `${-pane.width / 2}`);
+            mask.setAttribute("y", `${-pane.height / 2}`);
+            mask.setAttribute("width", `${pane.width}`);
+            mask.setAttribute("height", `${pane.height}`);
+
+            const maskImg = document.createElementNS(SVG_NS, "image");
+            maskImg.setAttribute("href", vtx.maskURI);
+            maskImg.setAttribute("x", `${-pane.width / 2}`);
+            maskImg.setAttribute("y", `${-pane.height / 2}`);
+            maskImg.setAttribute("width", `${pane.width}`);
+            maskImg.setAttribute("height", `${pane.height}`);
+            maskImg.setAttribute("preserveAspectRatio", "none");
+
+            mask.appendChild(maskImg);
+            reg.defs.appendChild(mask);
+            img.setAttribute("mask", `url(#${maskId})`);
+        }
+
         group.appendChild(img);
     }
 
-    for (const child of pane.children || []){
-        await makePane(child, group, gameNum);
+    if (reg) {
+        const rec = { el: group, img, pane, vtxMul: vtx.mul };
+        if (pane.name && !reg.panes.has(pane.name)) reg.panes.set(pane.name, rec);
+        if (pane.material_name) {
+            if (!reg.mats.has(pane.material_name)) reg.mats.set(pane.material_name, []);
+            reg.mats.get(pane.material_name).push(rec);
+        }
     }
+
+    for (const child of pane.children || []){
+        await makePane(child, group, gameNum, reg);
+    }
+}
+
+// ---- banner animation (BRLAN) runtime ----
+
+const activeAnimators = [];
+let animEpoch = performance.now();
+
+function evalTrack(track, frame) {
+    const kfs = track.keyframes;
+
+    if (track.data_type === 1) { // step
+        let v = kfs[0].value;
+        for (const k of kfs) {
+            if (k.frame <= frame) v = k.value;
+            else break;
+        }
+        return v;
+    }
+
+    // hermite
+    if (kfs.length === 1 || frame <= kfs[0].frame) return kfs[0].value;
+    const last = kfs[kfs.length - 1];
+    if (frame >= last.frame) return last.value;
+
+    let i = 0;
+    while (kfs[i + 1].frame <= frame) i++;
+    const k0 = kfs[i];
+    const k1 = kfs[i + 1];
+    const d = k1.frame - k0.frame;
+    if (d <= 0) return k1.value;
+
+    const t = (frame - k0.frame) / d;
+    const t2 = t * t;
+    const t3 = t2 * t;
+    return (2 * t3 - 3 * t2 + 1) * k0.value
+         + (t3 - 2 * t2 + t) * d * k0.slope
+         + (-2 * t3 + 3 * t2) * k1.value
+         + (t3 - t2) * d * k1.slope;
+}
+
+function applyAnimItem(item, frame, texHrefs) {
+    const { el, img, pane } = item.rec;
+    const p = item.paneProps;
+    const get = (name, fallback) => (p && p[name]) ? evalTrack(p[name], frame) : fallback;
+
+    const x = get("trans_x", pane.x);
+    const y = get("trans_y", pane.y);
+    const rz = get("rot_z", pane.rot_z || 0);
+    const sx = get("scale_x", pane.scale_x);
+    const sy = get("scale_y", pane.scale_y);
+
+    const transform = `translate(${x}, ${y}) rotate(${rz}) scale(${sx}, ${sy})`;
+    if (transform !== item.last.transform) {
+        el.setAttribute("transform", transform);
+        item.last.transform = transform;
+    }
+
+    // pane alpha track replaces the base alpha; vertex/material alphas multiply on top
+    let alpha = (get("alpha", pane.alpha) / 255) * (item.rec.vtxMul ?? 1);
+    if (p) {
+        const corners = ["vtx_lt_a", "vtx_rt_a", "vtx_lb_a", "vtx_rb_a"].filter(k => p[k]);
+        if (corners.length) {
+            let sum = 0;
+            for (const k of corners) sum += evalTrack(p[k], frame);
+            alpha *= (sum / corners.length) / 255;
+        }
+    }
+    for (const m of item.matProps) {
+        if (m.mat_a) alpha *= evalTrack(m.mat_a, frame) / 255;
+    }
+    const alphaStr = Math.max(0, Math.min(1, alpha)).toFixed(3);
+    if (alphaStr !== item.last.alpha) {
+        el.setAttribute("opacity", alphaStr);
+        item.last.alpha = alphaStr;
+    }
+
+    if (p && p.visible) {
+        const vis = evalTrack(p.visible, frame) >= 0.5;
+        if (vis !== item.last.visible) {
+            el.style.display = vis ? "" : "none";
+            item.last.visible = vis;
+        }
+    }
+
+    if (img && p && (p.size_w || p.size_h)) {
+        const w = get("size_w", pane.width);
+        const h = get("size_h", pane.height);
+        const size = `${w}x${h}`;
+        if (size !== item.last.size) {
+            img.setAttribute("x", `${-w / 2}`);
+            img.setAttribute("y", `${-h / 2}`);
+            img.setAttribute("width", `${w}`);
+            img.setAttribute("height", `${h}`);
+            item.last.size = size;
+        }
+    }
+
+    if (img && p && p.tex_pattern && texHrefs) {
+        const ti = Math.round(evalTrack(p.tex_pattern, frame));
+        if (ti !== item.last.tex && texHrefs[ti]) {
+            img.setAttribute("href", texHrefs[ti]);
+            item.last.tex = ti;
+        }
+    }
+}
+
+async function registerBannerAnimation(anim, reg, gameNum) {
+    const items = new Map(); // element -> item, so pane + material entries merge
+
+    for (const entry of anim.entries || []) {
+        const props = {};
+        for (const tag of entry.tags || []) {
+            for (const target of tag.targets || []) {
+                if (target.keyframes?.length) props[target.property] = target;
+            }
+        }
+        if (!Object.keys(props).length) continue;
+
+        const recs = entry.is_material
+            ? (reg.mats.get(entry.name) || [])
+            : (reg.panes.has(entry.name) ? [reg.panes.get(entry.name)] : []);
+
+        for (const rec of recs) {
+            let item = items.get(rec.el);
+            if (!item) {
+                item = { rec, paneProps: null, matProps: [], last: {} };
+                items.set(rec.el, item);
+            }
+            if (entry.is_material) item.matProps.push(props);
+            else item.paneProps = props;
+        }
+    }
+
+    if (!items.size) return;
+
+    // pre-resolve texture-pattern (RLTP) swap targets to asset urls
+    let texHrefs = null;
+    if (anim.textures?.length) {
+        const appDataPath = await appDataDir();
+        texHrefs = [];
+        for (const name of anim.textures) {
+            const stem = name.replace(/\.(tpl|tex0)$/i, "");
+            const full = await join(appDataPath, "generated_pngs", `${games[gameNum].folderKey}/`, `${stem}.png`);
+            texHrefs.push(convertFileSrc(full));
+        }
+    }
+
+    activeAnimators.push({
+        frameCount: Math.max(1, anim.frame_count || 1),
+        loops: anim.loop !== false,
+        items: [...items.values()],
+        texHrefs,
+    });
+}
+
+function startBannerAnimationLoop() {
+    function tick(now) {
+        const elapsed = (now - animEpoch) / 1000 * 60; // banners run at 60 anim-frames/sec
+        for (const a of activeAnimators) {
+            const frame = a.loops ? elapsed % a.frameCount : Math.min(elapsed, a.frameCount - 1);
+            for (const item of a.items) applyAnimItem(item, frame, a.texHrefs);
+        }
+        requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
 }
 
 async function insertNullSVG(gameNum) {
@@ -139,6 +404,9 @@ function findBackgroundPic(panes) {
     return null;
 }
 
+// rounded TV-frame outline shared by the border stroke and the texture clip
+const CHANNEL_BORDER_D = "M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z";
+
 async function insertGameSVG(gameNum) {
     const res = await readTextFile(games[gameNum].jsonPath);
     const channelJson = JSON.parse(res);
@@ -156,28 +424,65 @@ async function insertGameSVG(gameNum) {
     const vw = bg ? bg.width * (bg.scale_x || 1) : (channelJson.width || 200);
     const vh = bg ? bg.height * (bg.scale_y || 1) : (channelJson.height || 113);
 
+    // viewport matches the border path bounds (190 x ~103); "slice" scales the
+    // content up uniformly until it covers the frame (no stretching), and the
+    // rounded clip + viewport crop the slight vertical overflow
     const layoutSvg = document.createElementNS(SVG_NS, "svg");
     layoutSvg.setAttribute("x", "5");
     layoutSvg.setAttribute("y", "6");
     layoutSvg.setAttribute("width", "190");
-    layoutSvg.setAttribute("height", "101");
+    layoutSvg.setAttribute("height", "103.2");
     layoutSvg.setAttribute("viewBox", `${-vw / 2} ${-vh / 2} ${vw} ${vh}`);
-    layoutSvg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    layoutSvg.setAttribute("preserveAspectRatio", "xMidYMid slice");
 
     const preciseGroup = document.createElementNS(SVG_NS, "g");
     preciseGroup.setAttribute("transform", "scale(1,-1)"); // BRLYT is Y-up
     layoutSvg.appendChild(preciseGroup);
-    gameSVG.appendChild(layoutSvg);
+
+    // Clip the channel content to the rounded TV frame; the grey stroke is
+    // drawn on top afterwards so the edge stays crisp.
+    // IMPORTANT: the clip-path must sit on a <g> WRAPPING the nested <svg>.
+    // Putting it directly on the nested <svg> makes WebView2 leak a raster
+    // surface every animation frame (~400 MB/s -> renderer OOM crash).
+    const defs = document.createElementNS(SVG_NS, "defs");
+    const clip = document.createElementNS(SVG_NS, "clipPath");
+    clip.setAttribute("id", `chanClip_g${gameNum}`);
+    const clipShape = document.createElementNS(SVG_NS, "path");
+    clipShape.setAttribute("d", CHANNEL_BORDER_D);
+    clipShape.setAttribute("transform", "translate(5 6)");
+    clip.appendChild(clipShape);
+    defs.appendChild(clip);
+    gameSVG.appendChild(defs);
+
+    const clipGroup = document.createElementNS(SVG_NS, "g");
+    clipGroup.setAttribute("clip-path", `url(#chanClip_g${gameNum})`);
+    clipGroup.appendChild(layoutSvg);
+    gameSVG.appendChild(clipGroup);
+
+    const reg = { panes: new Map(), mats: new Map(), defs, uid: `g${gameNum}` };
 
     for (const pane of channelJson.root) {
-        await makePane(pane, preciseGroup, gameNum);
+        await makePane(pane, preciseGroup, gameNum, reg);
+    }
+
+    // animPath may be missing on games scanned before animation support existed;
+    // the anim json always sits next to the layout json, so fall back to that
+    const animPath = games[gameNum].animPath
+        ?? games[gameNum].jsonPath?.replace(/\.json$/, "_anim.json");
+    if (animPath) {
+        try {
+            const animText = await readTextFile(animPath);
+            await registerBannerAnimation(JSON.parse(animText), reg, gameNum);
+        } catch (err) {
+            console.warn("banner animation failed for", games[gameNum].title, err);
+        }
     }
 
     wrapper.appendChild(gameSVG);
 
     const border = document.createElementNS(SVG_NS, "path");
     border.setAttribute("transform", "translate(5 6)");
-    border.setAttribute("d", "M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z");
+    border.setAttribute("d", CHANNEL_BORDER_D);
     border.setAttribute("fill", "none");
     border.setAttribute("stroke", "#bbbbbb");
     border.setAttribute("stroke-width", "2");
@@ -198,6 +503,9 @@ async function insertChannels(){
     remainingGames -= page3Games;
 
     const spacesTaken = [page1Games, page2Games, page3Games];
+
+    activeAnimators.length = 0; // old SVG nodes are about to be wiped
+    animEpoch = performance.now();
 
     gameGridP1.innerHTML = "";
     gameGridP2.innerHTML = "";
@@ -422,7 +730,6 @@ async function onStart() {
     gamesPath = await store.get("gamesPath") ?? null;
     games = await store.get("games") ?? null;
     if (!Array.isArray(games)) games = [];
-    console.log(games);
 
     await insertChannels();
     await attachListenersToGames();
@@ -449,6 +756,7 @@ async function onClose() {
 }
 
 async function main(){
+    startBannerAnimationLoop();
     await onStart();
 
     const pages = [gameGridP1, gameGridP2, gameGridP3];
