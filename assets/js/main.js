@@ -169,7 +169,7 @@ async function makePane(pane, parentEl, gameNum, reg) {
         img = document.createElementNS(SVG_NS, "image");
 
         const appDataPath = await appDataDir();
-        const fullPngPath = await join(appDataPath, "generated_pngs", `${games[gameNum].folderKey}/`, pane.png_candidate);
+        const fullPngPath = await join(appDataPath, "wiiMainMenu", "cached_pngs", `${games[gameNum].folderKey}/`, pane.png_candidate);
         const assetUrl = convertFileSrc(fullPngPath);
         img.setAttribute("href", assetUrl);
         img.setAttribute("x", `${-pane.width / 2}`);
@@ -273,6 +273,50 @@ let noiseImgs = [];
 let scanRects = [];
 let noiseIdx = 0;
 let lastNoiseSwap = 0;
+
+// hovered card's pulse <g>, sampled every frame by the render loop so the
+// unhover handler knows the exact mid-pulse scale to hand to the transition
+// (reading it inside mouseleave is too late: :hover has already unmatched)
+let hoveredPulse = null;
+let hoveredPulseScale = "none";
+
+// ---- wiimote-driven hover ----
+// CSS :hover only follows the real mouse, so the cursor loop hit-tests the
+// wiimote position and mirrors hover as a .wiiHover class (styling) plus
+// real mouseenter/mouseleave events on game cards (tooltip + pulse JS).
+
+const WII_HOVERABLE = ".game.filled, .arrowWrap, .settingsBtnSVG";
+let wiiHovered = new Set();
+
+function updateWiiHover(px, py, visible) {
+    const next = new Set();
+
+    if (visible) {
+        // collect the whole hoverable ancestor chain, like real hover does
+        let el = document.elementFromPoint(px, py);
+        while (el) {
+            el = el.closest(WII_HOVERABLE);
+            if (!el) break;
+            next.add(el);
+            el = el.parentElement;
+        }
+    }
+
+    for (const el of wiiHovered) {
+        if (!next.has(el)) {
+            el.classList.remove("wiiHover");
+            if (el.matches(".game.filled")) el.dispatchEvent(new MouseEvent("mouseleave"));
+        }
+    }
+    for (const el of next) {
+        if (!wiiHovered.has(el)) {
+            el.classList.add("wiiHover");
+            if (el.matches(".game.filled")) el.dispatchEvent(new MouseEvent("mouseenter"));
+        }
+    }
+
+    wiiHovered = next;
+}
 
 function collectNoiseImgs() {
     noiseImgs = [...document.querySelectorAll(".gameGrid .game .nullNoise")];
@@ -422,7 +466,7 @@ async function registerBannerAnimation(anim, reg, gameNum) {
         texHrefs = [];
         for (const name of anim.textures) {
             const stem = name.replace(/\.(tpl|tex0)$/i, "");
-            const full = await join(appDataPath, "generated_pngs", `${games[gameNum].folderKey}/`, `${stem}.png`);
+            const full = await join(appDataPath, "wiiMainMenu", "cached_pngs", `${games[gameNum].folderKey}/`, `${stem}.png`);
             texHrefs.push(convertFileSrc(full));
         }
     }
@@ -439,6 +483,10 @@ async function registerBannerAnimation(anim, reg, gameNum) {
 function startBannerAnimationLoop() {
     function tick(now) {
         const page = curPage - 1; // only the visible page pays rendering cost
+
+        if (hoveredPulse) {
+            hoveredPulseScale = getComputedStyle(hoveredPulse).scale;
+        }
 
         const elapsed = (now - animEpoch) / 1000 * 60; // banners run at 60 anim-frames/sec
         for (const a of activeAnimators) {
@@ -503,7 +551,7 @@ async function insertGameSVG(gameNum) {
     const SVG_NS = "http://www.w3.org/2000/svg";
 
     const wrapper = document.createElement("div");
-    wrapper.setAttribute("class", `game ${gameNum}`);
+    wrapper.setAttribute("class", `game filled ${gameNum}`);
     wrapper.dataset.page = String(Math.floor(gameNum / 12));
 
     const gameSVG = document.createElementNS(SVG_NS, "svg");
@@ -579,6 +627,19 @@ async function insertGameSVG(gameNum) {
     border.setAttribute("stroke-width", "2");
     gameSVG.appendChild(border);
 
+    // hover glow: same frame shape drawn above the grey border. The wrapper
+    // <g> carries the looping pulse animation while the path itself carries
+    // the enter/exit transition, so the two never fight over one property.
+    const hoverPulse = document.createElementNS(SVG_NS, "g");
+    hoverPulse.setAttribute("class", "hoverPulse");
+    const hoverStroke = document.createElementNS(SVG_NS, "path");
+    hoverStroke.setAttribute("class", "hoverStroke");
+    hoverStroke.setAttribute("transform", "translate(5 6)");
+    hoverStroke.setAttribute("d", CHANNEL_BORDER_D);
+    hoverStroke.setAttribute("fill", "none");
+    hoverPulse.appendChild(hoverStroke);
+    gameSVG.appendChild(hoverPulse);
+
     return wrapper;
 }
 
@@ -653,10 +714,17 @@ async function attachListenersToGames() {
     const gameTitleWrapper = document.querySelector(".gameTitleWrapper");
     const gameTitle = document.querySelector(".gameTitle");
 
+    // one shared tooltip -> one shared pending-show timer, so a stale timer
+    // can never re-show the tooltip after mouseleave hid it
+    let titleShowTimer = null;
+
     for (let i = 0; i < games.length; i++) {
         gameCards[i].addEventListener("mouseenter", () => {
             const gameCard = gameCards[i];
             const currentGrid = gameCard.closest(".gameGrid");
+
+            hoveredPulse = gameCard.querySelector(".hoverPulse");
+            hoveredPulseScale = "none";
 
             const gameRect = gameCard.getBoundingClientRect();
             const wrapperRect = topWrapper.getBoundingClientRect();
@@ -665,31 +733,43 @@ async function attachListenersToGames() {
             const x = gameRect.left - wrapperRect.left + gameRect.width / 2;
             const y = gameRect.top - wrapperRect.top + gameRect.height - 7;
 
-            setTimeout(() => {
+            clearTimeout(titleShowTimer);
+            titleShowTimer = setTimeout(() => {
                 gameTitle.textContent = games[i].title;
                 gameTitleWrapper.style.display = "flex";
-                gameTitleWrapper.style.left = "0px";
-                gameTitleWrapper.style.top = "0px";
-                gameTitleWrapper.style.transform = `translate(${x}px, ${y}px) translateX(-50%)`;
 
-                const titleRect = gameTitleWrapper.getBoundingClientRect();
-                let correctedX = x;
+                // Position via left/top ONLY — transform and scale belong to
+                // the CSS animations. offsetWidth is the un-scaled layout
+                // width, so a mid-flight scale/transform animation can't
+                // corrupt the centering or edge-correction math.
+                const w = gameTitleWrapper.offsetWidth;
                 const gutter = 8;
+                const gridLeft = gridRect.left - wrapperRect.left;
+                const gridRight = gridRect.right - wrapperRect.left;
 
-                if (titleRect.left < gridRect.left + gutter) {
-                    correctedX += (gridRect.left + gutter) - titleRect.left;
-                }
+                let leftX = x - w / 2;
+                if (leftX < gridLeft + gutter) leftX = gridLeft + gutter;
+                if (leftX + w > gridRight - gutter) leftX = gridRight - gutter - w;
 
-                if (titleRect.right > gridRect.right - gutter) {
-                    correctedX -= titleRect.right - (gridRect.right - gutter);
-                }
-
-                gameTitleWrapper.style.transform = `translate(${correctedX}px, ${y}px) translateX(-50%)`;
-            }, 250);            
+                gameTitleWrapper.style.left = `${leftX}px`;
+                gameTitleWrapper.style.top = `${y}px`;
+            }, 250);
         });
 
         gameCards[i].addEventListener("mouseleave", () => {
+            clearTimeout(titleShowTimer);
             gameTitleWrapper.style.display = "none";
+
+            // hand the pulse's live scale to the CSS transition: pin it for
+            // one frame (the animation is already gone), then release so it
+            // eases back to neutral instead of snapping
+            if (hoveredPulse && hoveredPulseScale !== "none") {
+                const pulse = hoveredPulse;
+                pulse.style.scale = hoveredPulseScale;
+                requestAnimationFrame(() => { pulse.style.scale = ""; });
+            }
+            hoveredPulse = null;
+            hoveredPulseScale = "none";
         });
 
         gameCards[i].addEventListener("click", async () => {
@@ -789,6 +869,7 @@ async function initWiimote() {
         console.log(`Player ${e.payload} disconnected`);
         cursorP1.style.opacity = "0";
         latest = null;
+        updateWiiHover(0, 0, false);
     });
 
     await listen("game-error", (e) => {
@@ -806,8 +887,10 @@ async function initWiimote() {
                 cursorP1.style.opacity = "1";
                 cursorP1.style.transform =
                     `translate(${x * rect.width}px, ${y * rect.height}px) translate(-50%, -50%) rotate(${rotation}deg)`;
+                updateWiiHover(rect.left + x * rect.width, rect.top + y * rect.height, true);
             } else {
                 cursorP1.style.opacity = "0";
+                updateWiiHover(0, 0, false);
             }
         }
         requestAnimationFrame(renderCursor);
@@ -816,6 +899,7 @@ async function initWiimote() {
 }
 
 async function stopWiimote(){
+    updateWiiHover(0, 0, false); // release any wiimote-held hover states
     await invoke("stop_wiimote");
 }
 

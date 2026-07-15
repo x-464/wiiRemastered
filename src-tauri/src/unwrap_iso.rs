@@ -23,6 +23,7 @@ fn app_extract_root(app: &AppHandle) -> Result<PathBuf, String> {
         .path()
         .app_data_dir()
         .map_err(|e| format!("Failed to resolve app data dir: {}", e))?
+        .join("wiiMainMenu")
         .join("wit_extract");
 
     fs::create_dir_all(&root).map_err(|e| e.to_string())?;

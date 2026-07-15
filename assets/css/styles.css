@@ -120,7 +120,7 @@ body{
     pointer-events: none;
     /* padding: 0 10cqmin; */
     padding: 0.75cqh clamp(2cqw, 4cqw, 10cqw);
-    /* animation: titleShow 1s ease-in-out forwards; */
+    animation: titleShow 0.1s ease-in-out forwards;
 }
 
 @keyframes titleShow {
@@ -168,6 +168,59 @@ body{
     aspect-ratio: 16 / 9;
 }
 
+/* Hover glow. Split ownership so nothing fights:
+   - .hoverStroke (path)  owns enter/exit -> transitions on opacity + scale
+   - .hoverPulse  (<g>)   owns the loop   -> keyframe animation on scale
+   The g and path scales multiply visually, so the pulse rides on top of
+   whatever the enter/exit transition is doing. */
+
+.hoverStroke {
+    stroke: rgb(104, 182, 255);
+    stroke-width: 2;
+    filter: blur(1px);
+    opacity: 0;
+    scale: 0.9;
+    transform-box: fill-box;
+    transform-origin: center;
+    /* exit timings: unhover fades + glides back over 1s */
+    transition: opacity 1s ease, scale 1s ease;
+}
+
+.game.filled:is(:hover, .wiiHover) .hoverStroke {
+    opacity: 1;
+    scale: 1;
+    /* entrance: quick fade-in; scale snaps instantly (hidden by the fade)
+       so the pulse is already running the moment the glow appears */
+    transition: opacity 0.25s ease, scale 0s;
+}
+
+.hoverPulse {
+    scale: 1; /* explicit so the exit transition interpolates (none is discrete) */
+    transform-box: fill-box;
+    transform-origin: center;
+    /* exit path: JS pins the mid-pulse scale on unhover, then releases it so
+       this transition carries it smoothly back to neutral */
+    transition: scale 1s ease;
+}
+
+.game.filled:is(:hover, .wiiHover) .hoverPulse {
+    animation: gameHover 2s ease-in-out infinite;
+}
+
+@keyframes gameHover {
+    0%{
+        scale: 1;
+    }
+    25%{
+        scale: 1.015;
+    }
+    75%{
+        scale: 0.985;
+    }
+    100%{
+        scale: 1;
+    }
+}
 
 .arrowWrap{
     position: absolute;
@@ -210,16 +263,16 @@ body{
 .arrowBtn:hover{
     animation: arrowClick 0.2s 1 forwards;
 }
-.arrowWrap:hover .arrow{
+.arrowWrap:is(:hover, .wiiHover) .arrow{
     animation: hoverSquash 0.2s 1 forwards;
 }
-.arrowWrap:hover .arrowBtn{
+.arrowWrap:is(:hover, .wiiHover) .arrowBtn{
     animation: plusShow 0.1s ease-in-out 0.1s 1 forwards;
 }
-.arrowWrap:not(:hover) .arrowBtn{
+.arrowWrap:not(:is(:hover, .wiiHover)) .arrowBtn{
     animation: plusHide 0.2s ease-in-out 1 forwards;
 }
-.arrowWrap:not(:hover) .arrow{
+.arrowWrap:not(:is(:hover, .wiiHover)) .arrow{
     animation: unhoverSquash 0.2s 0.1s 1 forwards;
 }
 
@@ -338,7 +391,7 @@ body{
     cursor: pointer;
     z-index: 1;
 }
-.settingsBtnSVG:hover {
+.settingsBtnSVG:is(:hover, .wiiHover) {
     transform: scale(1.1) translateY(-1.5cqw);
 }
 

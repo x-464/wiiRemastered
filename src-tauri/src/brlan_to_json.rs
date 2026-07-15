@@ -123,7 +123,8 @@ fn json_output_root(app: &AppHandle, title: &str) -> Result<PathBuf, String> {
         .path()
         .app_data_dir()
         .map_err(|e| e.to_string())?
-        .join("generated_pngs")
+        .join("wiiMainMenu")
+        .join("cached_pngs")
         .join(title)
         .join("positioning_json");
 

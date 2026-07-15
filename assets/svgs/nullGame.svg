@@ -6,7 +6,7 @@
             font-family: "Roboto";
             font-weight: 650;
             font-size: 1.75rem;
-            opacity: 5%;
+            opacity: 7.5%;
             user-select: none;
             pointer-events: none;
         }
@@ -39,6 +39,14 @@
         stroke="#bbbbbb"
         stroke-width="2"
     />
+
+    <!-- hover glow: invisible until CSS gives it a stroke; the <g> carries
+         the pulse animation, the path carries the enter/exit transition -->
+    <g class="hoverPulse">
+        <path class="hoverStroke" transform="translate(5 6)" d="M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z"
+            fill="none"
+        />
+    </g>
 
     <text class="channelWii">
         <tspan x="79" y="69">Wii</tspan>
