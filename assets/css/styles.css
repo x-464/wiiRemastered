@@ -45,12 +45,8 @@ body{
 }
 
 .wiiGrid{
-    background: repeating-linear-gradient(
-        to bottom,
-        rgb(248, 248, 248) 0px 2.5px,
-        rgb(234, 234, 234) 2.5px 5px
-    );
-    
+    background: rgb(248, 248, 248);
+
     position: relative;
     aspect-ratio: 16 / 9;
     width: min(100dvw, calc(100dvh * 16 / 9));
@@ -58,12 +54,31 @@ body{
     grid-template: 1fr .385fr / 1fr;
     container-type: size;
 }
+/* Scrolling background scanlines. The layer is 5px (one stripe period) taller
+   than the grid and animated with a transform, so the scroll is GPU-composited
+   with zero repaint — do NOT switch this to background-position animation.
+   (A backdrop-filter blur also used to live here; it re-blurred the whole
+   screen every frame and crushed WKWebView. Bake softness into the wallpaper
+   instead if it's ever missed.) */
 .wiiGrid::before{
     content: "";
     position: absolute;
-    height: 100%;
-    width: 100%;
-    backdrop-filter: blur(0.5px);
+    z-index: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: -5px;
+    background: repeating-linear-gradient(
+        to bottom,
+        rgb(248, 248, 248) 0px 2.5px,
+        rgb(234, 234, 234) 2.5px 5px
+    );
+    animation: bgScanScroll 1.5s linear infinite;
+    pointer-events: none;
+}
+@keyframes bgScanScroll {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-5px); }
 }
 
 .cursorP1{
@@ -96,7 +111,7 @@ body{
     height: 10cqh;
     border-radius: 100cqmax;
     background-color: rgb(252, 252, 252);
-    /* border: solid 0.6cqmin rgb(180, 180, 180); */
+    border: solid 0.5cqmin rgb(200, 200, 200);
     box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.25);
     display: none;
     align-items: center;
@@ -105,6 +120,16 @@ body{
     pointer-events: none;
     /* padding: 0 10cqmin; */
     padding: 0.75cqh clamp(2cqw, 4cqw, 10cqw);
+    /* animation: titleShow 1s ease-in-out forwards; */
+}
+
+@keyframes titleShow {
+    0%{
+        scale: 0;
+    }
+    100%{
+        scale: 1;
+    }
 }
 
 .gameTitle{

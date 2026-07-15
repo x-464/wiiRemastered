@@ -13,61 +13,27 @@
     </style>
 
     <defs>
-
-        <pattern id="lineFill" width="4" height="5" patternUnits="userSpaceOnUse" patternTransform="translate(0,0)">
+        <clipPath id="nullGameClip">
+            <path transform="translate(5 6)" d="M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z" />
+        </clipPath>
+        <pattern id="nullLineFill" width="4" height="5" patternUnits="userSpaceOnUse">
             <rect width="4" height="1" fill="rgb(190, 190, 190)" />
             <rect y="1" width="4" height="4" fill="rgb(167, 167, 167)" />
-
-            <animateTransform
-                attributeName="patternTransform"
-                type="translate"
-                values="0,0; 0,-5;"
-                dur="1.5s"
-                repeatCount="indefinite" />
         </pattern>
-
-        <filter id="tvStatic">
-            <feTurbulence
-                type="fractalNoise"
-                baseFrequency="0.5"
-                numOctaves="1"
-                seed="2"
-                stitchTiles="stitch"
-                result="noise">
-
-                <animate
-                    attributeName="seed"
-                    values="1;12;24;36;48;60;72;84"
-                    dur="0.18s"
-                    repeatCount="indefinite" 
-                />
-            </feTurbulence>
-
-            <!-- make it grayscale -->
-            <feColorMatrix in="noise" type="saturate" values="0" result="monoNoise" />
-
-            <!-- crank contrast -->
-            <feComponentTransfer in="monoNoise" result="staticNoise">
-                <feFuncR type="linear" slope="4" intercept="-1.5" />
-                <feFuncG type="linear" slope="4" intercept="-1.5" />
-                <feFuncB type="linear" slope="4" intercept="-1.5" />
-            </feComponentTransfer>
-
-            <!-- keep it only inside the fill shape -->
-            <feComposite in="staticNoise" in2="SourceGraphic" operator="in" result="clippedNoise" />
-
-            <!-- blend into your pattern -->
-            <feBlend in="SourceGraphic" in2="clippedNoise" mode="screen" />
-        </filter>
     </defs>
 
-    <g class="precisePath">
-        <path transform="translate(5 6)" d="M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z" 
-            fill="url(#lineFill)"
-            filter="url(#tvStatic)"
-            opacity="60%"
+    <!-- TV static, driven by main.js: the scanline rect is one stripe period
+         taller than the card and scrolled via transform; the noise image
+         cycles pre-rendered white-alpha speckle frames (compositing white
+         with alpha over the stripes is exactly the old screen blend). -->
+    <g clip-path="url(#nullGameClip)" opacity="0.6">
+        <rect class="nullScan" x="5" y="1" width="190" height="113.2" fill="url(#nullLineFill)" />
+        <image class="nullNoise"
+            x="5" y="6" width="190" height="103.2"
+            preserveAspectRatio="none"
         />
     </g>
+
     <path class="gameStroke" transform="translate(5 6)" d="M190,51.5c0-21.61-1.04-39.36-2.36-41.31-2.14-5.92-8.1-10.19-15.14-10.19H17.5C10.46,0,4.5,4.27,2.36,10.19,1.04,12.14,0,29.89,0,51.5s1.04,39.36,2.36,41.31c2.14,5.92,8.1,10.19,15.14,10.19h155c7.04,0,13-4.27,15.14-10.19,1.32-1.96,2.36-19.7,2.36-41.31Z"
         fill="none"
         stroke="#bbbbbb"

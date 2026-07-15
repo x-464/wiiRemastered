@@ -219,6 +219,69 @@ async function makePane(pane, parentEl, gameNum, reg) {
     }
 }
 
+// ---- TV static for empty channels ----
+// Pre-renders a few frames of speckle noise once at startup; the render loop
+// cycles the shared frames across all null cards and scrolls their scanline
+// pattern. Frames are white-with-alpha, so plain compositing over the stripes
+// gives exactly the screen blend the old feTurbulence filter produced.
+
+const SCAN_PERIOD_MS = 1500;  // one 5-unit scanline period per 1.5s (as before)
+const NOISE_INTERVAL_MS = 40; // ~30 flickers/sec, the old filter's effective rate
+
+function makeNoiseFrames(frameCount = 8) {
+    const W = 800, H = 452;   // 4x the card's user units (retina-sharp)
+    const NW = 400, NH = 226; // fine grain: 0.5 unit/px, upscaled 2x smoothly
+
+    const small = document.createElement("canvas");
+    small.width = NW;
+    small.height = NH;
+    const sctx = small.getContext("2d");
+
+    const big = document.createElement("canvas");
+    big.width = W;
+    big.height = H;
+    const bctx = big.getContext("2d");
+    bctx.imageSmoothingEnabled = true;
+
+    const frames = [];
+    for (let f = 0; f < frameCount; f++) {
+        // triangular-distributed noise through a soft contrast curve; keeps
+        // speckles sparse and faint like the old feTurbulence, not white blobs
+        const px = sctx.createImageData(NW, NH);
+        for (let i = 0; i < NW * NH; i++) {
+            const n = (Math.random() + Math.random()) / 2;
+            // the trailing multiplier caps how bright a speckle can get over
+            // the scanline base — raise/lower it to make the static louder/softer
+            const a = Math.min(1, Math.max(0, n * 3 - 1.1)) * 120;
+            const o = i * 4;
+            px.data[o] = 255;
+            px.data[o + 1] = 255;
+            px.data[o + 2] = 255;
+            px.data[o + 3] = a;
+        }
+        sctx.putImageData(px, 0, 0);
+
+        bctx.clearRect(0, 0, W, H);
+        bctx.drawImage(small, 0, 0, W, H);
+        frames.push(big.toDataURL("image/png"));
+    }
+    return frames;
+}
+
+let noiseFrames = null;
+let noiseImgs = [];
+let scanRects = [];
+let noiseIdx = 0;
+let lastNoiseSwap = 0;
+
+function collectNoiseImgs() {
+    noiseImgs = [...document.querySelectorAll(".gameGrid .game .nullNoise")];
+    scanRects = [...document.querySelectorAll(".gameGrid .game .nullScan")];
+    if (noiseFrames) {
+        for (const el of noiseImgs) el.setAttribute("href", noiseFrames[0]);
+    }
+}
+
 // ---- banner animation (BRLAN) runtime ----
 
 const activeAnimators = [];
@@ -369,16 +432,42 @@ async function registerBannerAnimation(anim, reg, gameNum) {
         loops: anim.loop !== false,
         items: [...items.values()],
         texHrefs,
+        page: Math.floor(gameNum / 12),
     });
 }
 
 function startBannerAnimationLoop() {
     function tick(now) {
+        const page = curPage - 1; // only the visible page pays rendering cost
+
         const elapsed = (now - animEpoch) / 1000 * 60; // banners run at 60 anim-frames/sec
         for (const a of activeAnimators) {
+            if (a.page !== page) continue;
             const frame = a.loops ? elapsed % a.frameCount : Math.min(elapsed, a.frameCount - 1);
             for (const item of a.items) applyAnimItem(item, frame, a.texHrefs);
         }
+
+        // static runs on every page (cheap: shared pre-decoded frames, and
+        // neighbouring pages peek in at grid edges). Random frame order so
+        // the small pool never reads as a loop.
+        if (noiseFrames) {
+            if (now - lastNoiseSwap >= NOISE_INTERVAL_MS) {
+                lastNoiseSwap = now;
+                noiseIdx = (noiseIdx + 1 + Math.floor(Math.random() * (noiseFrames.length - 1))) % noiseFrames.length;
+                const href = noiseFrames[noiseIdx];
+                for (const el of noiseImgs) {
+                    el.setAttribute("href", href);
+                }
+            }
+            // scanlines drift up one 5-unit period per SCAN_PERIOD_MS,
+            // updated every frame so the motion stays smooth
+            const scanY = -((now % SCAN_PERIOD_MS) / SCAN_PERIOD_MS) * 5;
+            const scanTr = `translate(0 ${scanY.toFixed(3)})`;
+            for (const el of scanRects) {
+                el.setAttribute("transform", scanTr);
+            }
+        }
+
         requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -390,6 +479,7 @@ async function insertNullSVG(gameNum) {
 
     const wrapper = document.createElement("div");
     wrapper.setAttribute("class", `game ${gameNum}`);
+    wrapper.dataset.page = String(Math.floor(gameNum / 12));
     wrapper.innerHTML = nullText;
 
     return wrapper;
@@ -414,6 +504,7 @@ async function insertGameSVG(gameNum) {
 
     const wrapper = document.createElement("div");
     wrapper.setAttribute("class", `game ${gameNum}`);
+    wrapper.dataset.page = String(Math.floor(gameNum / 12));
 
     const gameSVG = document.createElementNS(SVG_NS, "svg");
     gameSVG.setAttribute("viewBox", "0 0 200 113");
@@ -531,6 +622,8 @@ async function insertChannels(){
     for (const grid of gameGrids) {
         grid.style.visibility = "visible";
     }
+
+    collectNoiseImgs();
 }
 
 async function getTitle(id) {
@@ -572,26 +665,27 @@ async function attachListenersToGames() {
             const x = gameRect.left - wrapperRect.left + gameRect.width / 2;
             const y = gameRect.top - wrapperRect.top + gameRect.height - 7;
 
-            gameTitle.textContent = games[i].title;
-            gameTitleWrapper.style.display = "flex";
-            gameTitleWrapper.style.left = "0px";
-            gameTitleWrapper.style.top = "0px";
-            gameTitleWrapper.style.transform = `translate(${x}px, ${y}px) translateX(-50%)`;
+            setTimeout(() => {
+                gameTitle.textContent = games[i].title;
+                gameTitleWrapper.style.display = "flex";
+                gameTitleWrapper.style.left = "0px";
+                gameTitleWrapper.style.top = "0px";
+                gameTitleWrapper.style.transform = `translate(${x}px, ${y}px) translateX(-50%)`;
 
-            const titleRect = gameTitleWrapper.getBoundingClientRect();
-            let correctedX = x;
-            const gutter = 8;
+                const titleRect = gameTitleWrapper.getBoundingClientRect();
+                let correctedX = x;
+                const gutter = 8;
 
-            if (titleRect.left < gridRect.left + gutter) {
-                correctedX += (gridRect.left + gutter) - titleRect.left;
-            }
+                if (titleRect.left < gridRect.left + gutter) {
+                    correctedX += (gridRect.left + gutter) - titleRect.left;
+                }
 
-            if (titleRect.right > gridRect.right - gutter) {
-                correctedX -= titleRect.right - (gridRect.right - gutter);
-            }
+                if (titleRect.right > gridRect.right - gutter) {
+                    correctedX -= titleRect.right - (gridRect.right - gutter);
+                }
 
-            gameTitleWrapper.style.transform =
-                `translate(${correctedX}px, ${y}px) translateX(-50%)`;
+                gameTitleWrapper.style.transform = `translate(${correctedX}px, ${y}px) translateX(-50%)`;
+            }, 250);            
         });
 
         gameCards[i].addEventListener("mouseleave", () => {
@@ -756,6 +850,7 @@ async function onClose() {
 }
 
 async function main(){
+    noiseFrames = makeNoiseFrames();
     startBannerAnimationLoop();
     await onStart();
 
