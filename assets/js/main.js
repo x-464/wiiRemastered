@@ -226,11 +226,11 @@ async function makePane(pane, parentEl, gameNum, reg) {
 // gives exactly the screen blend the old feTurbulence filter produced.
 
 const SCAN_PERIOD_MS = 1500;  // one 5-unit scanline period per 1.5s (as before)
-const NOISE_INTERVAL_MS = 40; // ~30 flickers/sec, the old filter's effective rate
+const NOISE_INTERVAL_MS = 60; // ~30 flickers/sec, the old filter's effective rate
 
 function makeNoiseFrames(frameCount = 8) {
-    const W = 800, H = 452;   // 4x the card's user units (retina-sharp)
-    const NW = 400, NH = 226; // fine grain: 0.5 unit/px, upscaled 2x smoothly
+    const W = 200, H = 113;
+    const NW = 300, NH = 163;
 
     const small = document.createElement("canvas");
     small.width = NW;
