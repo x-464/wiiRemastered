@@ -18,6 +18,10 @@ body{
     min-height: 100dvh;
     overflow: hidden;
     container-type: size;
+    /* console UI: no text is ever selectable; inherits everywhere
+       (WKWebView needs the -webkit- prefix) */
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .scrollTrack svg, .arrowWrap svg{
@@ -152,6 +156,9 @@ body{
     overflow: scroll;
     scrollbar-width: none;
     position: relative;
+}
+.scrollTrack::-webkit-scrollbar{
+    display: none; /* scrollbar-width needs Safari 18.2+; this covers older WKWebView */
 }
 
 .gameGrid{
