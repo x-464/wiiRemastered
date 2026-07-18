@@ -75,12 +75,17 @@ async function getGameInfo() {
 }
 
 async function getDolphinPath() {
+    const isMac = navigator.platform?.startsWith("Mac")
+        || navigator.userAgent.includes("Macintosh");
+
     const selected = await open({
         multiple: false,
         filters: [
             {
-                name: "Executable",
-                extensions: ["exe"]
+                name: "Dolphin",
+                // macOS Dolphin is a .app bundle; the Rust side resolves it
+                // to the real binary inside Contents/MacOS
+                extensions: isMac ? ["app"] : ["exe"]
             }
         ]
     });

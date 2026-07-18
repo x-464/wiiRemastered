@@ -53,6 +53,10 @@ body{
     display: grid;
     grid-template: 1fr .385fr / 1fr;
     container-type: size;
+    /* the ::before scanline layer is one stripe taller than the grid for
+       seamless scrolling; without this it pokes into the letterbox bars on
+       non-16:9 screens (visible on the MacBook) */
+    overflow: clip;
 }
 /* Scrolling background scanlines. The layer is 5px (one stripe period) taller
    than the grid and animated with a transform, so the scroll is GPU-composited
