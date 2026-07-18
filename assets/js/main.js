@@ -13,6 +13,7 @@ let games = [];
 let curPage = 1;
 let dolphinPath = null;
 let gamesPath = null;
+let gameRunning = false; // blocks double-launching Dolphin
 
 const store = new LazyStore("settings.json");
 
@@ -72,6 +73,11 @@ async function getGameInfo() {
         const game = { id, title, folderKey, isoPath, bnrPath, binPaths, pngPaths, jsonPath, animPath };
         games.push(game);
     }
+
+    // persist immediately (see getDolphinPath: macOS Cmd+Q skips save-on-exit)
+    await store.set("games", games);
+    await store.set("gamesPath", gamesPath);
+    await store.save();
 }
 
 async function getDolphinPath() {
@@ -93,6 +99,11 @@ async function getDolphinPath() {
     if (!selected || Array.isArray(selected)) return;
 
     dolphinPath = selected;
+
+    // persist immediately: Cmd+Q on macOS quits without firing the window
+    // close-requested handler, so save-on-exit alone loses settings there
+    await store.set("dolphinPath", dolphinPath);
+    await store.save();
 }
 
 // ---- per-vertex color (GX Gouraud) support ----
@@ -785,9 +796,17 @@ async function attachListenersToGames() {
         });
 
         gameCards[i].addEventListener("click", async () => {
+            if (gameRunning) return; // double-clicks must not spawn a second Dolphin
+            gameRunning = true;
+
             console.log("launching with dolphin:", dolphinPath, "iso:", games[i].isoPath);
-            await invoke("open_game", { gamePath: games[i].isoPath, dolphinPath: String(dolphinPath) });
-            stopWiimote();
+            try {
+                await invoke("open_game", { gamePath: games[i].isoPath, dolphinPath: String(dolphinPath) });
+                stopWiimote();
+            } catch (err) {
+                console.error("open_game failed:", err);
+                gameRunning = false;
+            }
         });
     }
 }
@@ -886,10 +905,14 @@ async function initWiimote() {
 
     await listen("game-error", (e) => {
         console.error("open_game failed:", e.payload);
+        gameRunning = false;
         startWiimote();
     });
 
-    await listen("game-closed", () => { startWiimote(); });
+    await listen("game-closed", () => {
+        gameRunning = false;
+        startWiimote();
+    });
 
     function renderCursor() {
         if (latest) {
