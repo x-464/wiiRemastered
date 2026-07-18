@@ -26,8 +26,7 @@
 use hidapi::{HidApi, HidDevice};
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
-use std::thread::{self, JoinHandle};
+use std::thread;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
 
@@ -71,8 +70,12 @@ const INIT_DELAY: Duration = Duration::from_millis(50);
 // Shared state so we can cleanly start/stop (and release the device for Dolphin).
 // ---------------------------------------------------------------------------
 
+/// Whether the cursor should be actively reading the wiimote.
 static WIIMOTE_RUNNING: AtomicBool = AtomicBool::new(false);
-static WIIMOTE_THREAD: Mutex<Option<JoinHandle<()>>> = Mutex::new(None);
+/// Whether the immortal HID thread has been spawned yet.
+static HID_THREAD_STARTED: AtomicBool = AtomicBool::new(false);
+/// True while the read loop holds the wiimote's HID handle open.
+static DEVICE_HELD: AtomicBool = AtomicBool::new(false);
 
 // ---------------------------------------------------------------------------
 // Payload sent to the frontend.
@@ -426,21 +429,43 @@ const EMIT_HEARTBEAT: Duration = Duration::from_millis(500);
 const EMIT_POS_EPSILON: f32 = 0.002;
 const EMIT_ROT_EPSILON: f32 = 0.5;
 
-fn wiimote_supervisor(app: &AppHandle, player: u8) {
-    let mut api = match HidApi::new() {
-        Ok(a) => a,
-        Err(e) => {
-            log::error!("hidapi init failed: {e}");
-            return;
-        }
-    };
-
+/// Owns the single process-lifetime HidApi on a thread that never exits.
+///
+/// macOS's IOHIDManager schedules device callbacks on the creating thread's
+/// run loop. The old design built a fresh HidApi on a fresh thread on every
+/// start_wiimote (i.e. after every game close); when the HID devices had
+/// churned while Dolphin held the remote, re-initialization crashed with a
+/// pointer-authentication trap inside CFRunLoopAddSource
+/// (IOHIDDeviceScheduleWithRunLoop). One immortal thread + one HidApi keeps
+/// IOKit on the stable, well-trodden path. Start/stop only toggle flags:
+/// stopping closes the HID device handle (so Dolphin can claim the remote)
+/// but never tears down the manager.
+fn hid_thread(app: AppHandle, player: u8) {
+    let mut api: Option<HidApi> = None;
     let mut announced_wait = false;
 
-    while WIIMOTE_RUNNING.load(Ordering::SeqCst) {
-        let _ = api.refresh_devices(); // pick up remotes synced after startup
+    loop {
+        if !WIIMOTE_RUNNING.load(Ordering::SeqCst) {
+            announced_wait = false;
+            thread::sleep(Duration::from_millis(100));
+            continue;
+        }
 
-        let dev = match open_wiimote(&api) {
+        if api.is_none() {
+            match HidApi::new() {
+                Ok(a) => api = Some(a),
+                Err(e) => {
+                    log::error!("hidapi init failed, retrying: {e}");
+                    sleep_unless_stopped(1000);
+                    continue;
+                }
+            }
+        }
+        let api_ref = api.as_mut().expect("hidapi initialized above");
+
+        let _ = api_ref.refresh_devices(); // pick up remotes synced after startup
+
+        let dev = match open_wiimote(api_ref) {
             Ok(d) => d,
             Err(_) => {
                 if !announced_wait {
@@ -459,8 +484,10 @@ fn wiimote_supervisor(app: &AppHandle, player: u8) {
             continue;
         }
 
-        run_read_loop(app, player, &dev);
-        // dev drops here -> loop re-scans and reconnects
+        DEVICE_HELD.store(true, Ordering::SeqCst);
+        run_read_loop(&app, player, &dev);
+        drop(dev); // release the remote before signalling (Dolphin handoff)
+        DEVICE_HELD.store(false, Ordering::SeqCst);
     }
 }
 
@@ -604,31 +631,28 @@ fn run_read_loop(app: &AppHandle, player: u8, dev: &HidDevice) {
 // ---------------------------------------------------------------------------
 
 /// Start reading the Wiimote and emitting `wiimote-update` events.
-/// Idempotent: calling it while already running is a no-op.
+/// Idempotent: the HID thread is spawned once and lives for the whole
+/// process; this only flips it into the active state.
 #[tauri::command]
 pub fn start_wiimote(app: AppHandle) -> Result<(), String> {
-    // Claim the "running" flag; if it was already true, we're already going.
-    if WIIMOTE_RUNNING.swap(true, Ordering::SeqCst) {
-        return Ok(());
+    WIIMOTE_RUNNING.store(true, Ordering::SeqCst);
+
+    if !HID_THREAD_STARTED.swap(true, Ordering::SeqCst) {
+        thread::spawn(move || hid_thread(app, 1));
     }
 
-    let app_for_thread = app.clone();
-    let handle = thread::spawn(move || {
-        wiimote_supervisor(&app_for_thread, 1);
-        WIIMOTE_RUNNING.store(false, Ordering::SeqCst);
-    });
-
-    *WIIMOTE_THREAD.lock().unwrap() = Some(handle);
     Ok(())
 }
 
-/// Stop reading and **release the device**. This blocks until the read thread has
-/// fully exited, so when it returns you're guaranteed the HID handle is closed —
-/// call this right before launching Dolphin so it can take the remote.
+/// Stop reading and **release the device**. Blocks (bounded) until the read
+/// loop has closed the HID handle, so when it returns Dolphin can take the
+/// remote. The HID thread itself stays alive, idling.
 #[tauri::command]
 pub fn stop_wiimote() {
     WIIMOTE_RUNNING.store(false, Ordering::SeqCst);
-    if let Some(handle) = WIIMOTE_THREAD.lock().unwrap().take() {
-        let _ = handle.join();
+
+    let deadline = Instant::now() + Duration::from_secs(2);
+    while DEVICE_HELD.load(Ordering::SeqCst) && Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(10));
     }
 }
