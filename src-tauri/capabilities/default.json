@@ -20,10 +20,10 @@
       "identifier": "fs:scope",
       "allow": [
         {
-          "path": "$APPDATA/generated_pngs"
+          "path": "$APPDATA/wiiMainMenu"
         },
         {
-          "path": "$APPDATA/generated_pngs/**"
+          "path": "$APPDATA/wiiMainMenu/**"
         }
       ]
     }
