@@ -27,6 +27,8 @@ src-tauri/target/
 .env.*
 !.env.example
 
-# local AI upscaler tool (35MB of binaries/models, per-machine install)
+# local AI upscaler tool (~100MB of binaries/models; copy to each machine,
+# or delete this line to commit it with the repo)
+upscaler/
 realesrgan-ncnn-vulkan-*/
 Real-ESRGAN-*/

@@ -672,7 +672,14 @@ async function insertChannels(){
             const gameIndex = i * 12 + j;
 
             if (j < spacesTaken[i]) {
-                gameGrids[i].appendChild(await insertGameSVG(gameIndex));
+                // a game with missing/stale cache files must degrade to an
+                // empty slot, never break the whole menu
+                try {
+                    gameGrids[i].appendChild(await insertGameSVG(gameIndex));
+                } catch (err) {
+                    console.warn("game card failed, showing empty slot:", games[gameIndex]?.title, err);
+                    gameGrids[i].appendChild(await insertNullSVG(gameIndex));
+                }
             }
             else {
                 gameGrids[i].appendChild(await insertNullSVG(gameIndex));

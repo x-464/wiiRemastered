@@ -91,15 +91,15 @@ fn intensity_to_alpha(png_path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-/// Locate the upscaler. Checks, in order: folders named
-/// "realesrgan-ncnn-vulkan*" next to any ancestor of the app executable or
-/// the working directory (covers the tool folder dropped into the project),
-/// then PATH. Returns (exe, models dir).
+/// Locate the upscaler. The project ships an `upscaler/` folder with a
+/// shared `models/` dir and per-platform binaries (`windows/`, `macos/`);
+/// it's searched for next to every ancestor of the app executable and the
+/// working directory, with PATH as a final fallback. Returns (exe, models).
 fn find_upscaler() -> Option<(PathBuf, PathBuf)> {
-    let exe_name = if cfg!(target_os = "windows") {
-        "realesrgan-ncnn-vulkan.exe"
+    let (platform_dir, exe_name) = if cfg!(target_os = "windows") {
+        ("windows", "realesrgan-ncnn-vulkan.exe")
     } else {
-        "realesrgan-ncnn-vulkan"
+        ("macos", "realesrgan-ncnn-vulkan")
     };
 
     let mut roots: Vec<PathBuf> = Vec::new();
@@ -111,19 +111,10 @@ fn find_upscaler() -> Option<(PathBuf, PathBuf)> {
     }
 
     for root in roots {
-        let Ok(entries) = fs::read_dir(&root) else { continue };
-        for entry in entries.flatten() {
-            let dir = entry.path();
-            let is_tool_dir = dir.is_dir()
-                && dir
-                    .file_name()
-                    .map_or(false, |n| n.to_string_lossy().starts_with("realesrgan-ncnn-vulkan"));
-            if is_tool_dir {
-                let exe = dir.join(exe_name);
-                if exe.is_file() {
-                    return Some((exe, dir.join("models")));
-                }
-            }
+        let dir = root.join("upscaler");
+        let exe = dir.join(platform_dir).join(exe_name);
+        if exe.is_file() {
+            return Some((exe, dir.join("models")));
         }
     }
 

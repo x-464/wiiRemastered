@@ -78,7 +78,7 @@ static WIIMOTE_THREAD: Mutex<Option<JoinHandle<()>>> = Mutex::new(None);
 // Payload sent to the frontend.
 // ---------------------------------------------------------------------------
 
-#[derive(Serialize, Clone, Default)]
+#[derive(Serialize, Clone, Default, PartialEq)]
 pub struct Buttons {
     pub a: bool,
     pub b: bool,
@@ -418,6 +418,14 @@ fn map_midpoint(mx: f32, my: f32, theta: f32) -> (f32, f32, f32) {
 
 const DISCONNECT_TIMEOUT: Duration = Duration::from_millis(1500);
 
+/// Idle heartbeat for `wiimote-update` events. Reports arrive at HID rate,
+/// but an unchanged cursor is only re-sent this often; meaningful changes
+/// (movement, visibility, rotation, buttons) still emit immediately so
+/// pointing stays smooth.
+const EMIT_HEARTBEAT: Duration = Duration::from_millis(500);
+const EMIT_POS_EPSILON: f32 = 0.002;
+const EMIT_ROT_EPSILON: f32 = 0.5;
+
 fn wiimote_supervisor(app: &AppHandle, player: u8) {
     let mut api = match HidApi::new() {
         Ok(a) => a,
@@ -504,6 +512,10 @@ fn run_read_loop(app: &AppHandle, player: u8, dev: &HidDevice) {
 
     let mut prev_buttons = Buttons::default();
 
+    // throttling state: last emitted values + when
+    let mut last_emit = Instant::now() - EMIT_HEARTBEAT;
+    let mut last_sent: Option<(f32, f32, f32, bool)> = None;
+
     while WIIMOTE_RUNNING.load(Ordering::SeqCst) {
         match dev.read_timeout(&mut buf, 100) {
             Ok(0) => {
@@ -544,20 +556,39 @@ fn run_read_loop(app: &AppHandle, player: u8, dev: &HidDevice) {
                     }
                 };
 
+                let buttons_changed = buttons != prev_buttons;
                 emit_button_edges(app, player, &prev_buttons, &buttons, sx, sy, visible);
                 prev_buttons = buttons.clone();
 
-                let update = WiimoteUpdate {
-                    x: sx,
-                    y: sy,
-                    visible,
-                    rotation: srot,
-                    buttons,
-                    accel_x,
-                    accel_y,
-                    accel_z,
-                };
-                let _ = app.emit("wiimote-update", &update);
+                // emit immediately on meaningful change, else 500ms heartbeat
+                // (accel deliberately excluded: it jitters on every report)
+                let changed = buttons_changed
+                    || match last_sent {
+                        None => true,
+                        Some((px, py, pr, pv)) => {
+                            pv != visible
+                                || (sx - px).abs() > EMIT_POS_EPSILON
+                                || (sy - py).abs() > EMIT_POS_EPSILON
+                                || (srot - pr).abs() > EMIT_ROT_EPSILON
+                        }
+                    };
+
+                if changed || last_emit.elapsed() >= EMIT_HEARTBEAT {
+                    last_emit = Instant::now();
+                    last_sent = Some((sx, sy, srot, visible));
+
+                    let update = WiimoteUpdate {
+                        x: sx,
+                        y: sy,
+                        visible,
+                        rotation: srot,
+                        buttons,
+                        accel_x,
+                        accel_y,
+                        accel_z,
+                    };
+                    let _ = app.emit("wiimote-update", &update);
+                }
             }
             Err(_) => {
                 let _ = app.emit("wiimote-disconnected", player);
