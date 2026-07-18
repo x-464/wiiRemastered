@@ -1,41 +1,35 @@
-use std::path::PathBuf;
 use std::process::Command;
 use tauri::{AppHandle, Emitter};
 
-/// A macOS .app bundle is a directory, not an executable. Resolve it to the
-/// real binary in Contents/MacOS so we spawn (and can wait on) the actual
-/// process — `open -a` would return immediately and break game-closed
-/// detection. Prefers the binary named like the bundle, falls back to the
-/// first file found. On other platforms the path passes through untouched.
-fn resolve_launchable(path: String) -> PathBuf {
-    let p = PathBuf::from(&path);
-
-    if cfg!(target_os = "macos") && p.extension().and_then(|e| e.to_str()) == Some("app") {
-        let macos_dir = p.join("Contents").join("MacOS");
-        let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or_default();
-
-        let preferred = macos_dir.join(stem);
-        if preferred.is_file() {
-            return preferred;
-        }
-        if let Ok(entries) = std::fs::read_dir(&macos_dir) {
-            if let Some(first) = entries.flatten().map(|e| e.path()).find(|c| c.is_file()) {
-                return first;
-            }
-        }
+/// macOS .app bundles must go through LaunchServices (`open`) — executing
+/// the inner Contents/MacOS binary directly runs Dolphin outside a proper
+/// app session, which caused spurious "crashed"/second-instance dialogs and
+/// ghost relaunches. `-W` blocks until Dolphin quits so game-closed
+/// detection still works, `-n` forces a fresh instance, and `--args`
+/// forwards the batch/exec flags. Windows (and raw binaries) spawn directly.
+fn build_launch_command(dolphin_path: &str, game_path: &str) -> Command {
+    if cfg!(target_os = "macos") && dolphin_path.ends_with(".app") {
+        let mut cmd = Command::new("open");
+        cmd.arg("-W")
+            .arg("-n")
+            .arg("-a")
+            .arg(dolphin_path)
+            .arg("--args")
+            .arg("-b")
+            .arg("-e")
+            .arg(game_path);
+        return cmd;
     }
 
-    p
+    let mut cmd = Command::new(dolphin_path);
+    cmd.arg("-b").arg("-e").arg(game_path);
+    cmd
 }
 
 #[tauri::command]
 pub fn open_game(app: AppHandle, game_path: String, dolphin_path: String) -> Result<(), String> {
     std::thread::spawn(move || {
-        let mut child = match Command::new(resolve_launchable(dolphin_path))
-            .arg("-b")
-            .arg("-e")
-            .arg(game_path)
-            .spawn()
+        let mut child = match build_launch_command(&dolphin_path, &game_path).spawn()
         {
             Ok(child) => child,
             Err(e) => {

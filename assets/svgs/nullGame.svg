@@ -7,6 +7,7 @@
             font-weight: 650;
             font-size: 1.75rem;
             opacity: 7.5%;
+            -webkit-user-select: none; /* WKWebView needs the prefix */
             user-select: none;
             pointer-events: none;
         }
